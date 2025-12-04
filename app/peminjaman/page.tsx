@@ -2,21 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ClipboardList, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { getAuth, clearAuth } from "@/lib/auth";
+import { useAuthStore } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
 
-type Peminjaman = any; // nanti bisa diketik sesuai response BE
+type Peminjaman = any; // sesuaikan dengan tipe BE
 
 export default function PeminjamanPage() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+
   const [data, setData] = useState<Peminjaman[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { token, user } = getAuth();
-
     if (!token || !user) {
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -29,34 +35,41 @@ export default function PeminjamanPage() {
     const load = async () => {
       try {
         const res = await apiFetch("/peminjaman", {}, token);
-        // sesuaikan bentuk response BE
         setData(res.data ?? res);
       } catch (err: any) {
         console.error("LOAD PEMINJAMAN ERROR", err);
         setError(err.message || "Gagal memuat data");
-        clearAuth();
-        router.replace("/login");
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [router]);
+  }, [router, token, user, clearAuthStore]);
 
   if (loading) return <div className="p-6">Memuat...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <motion.div
+      className="min-h-screen bg-slate-50 p-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Peminjaman Saya</h1>
-          <button
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-slate-700" />
+            <h1 className="text-xl font-semibold">Peminjaman Saya</h1>
+          </div>
+          <Button
             onClick={() => router.push("/peminjaman/buat")}
-            className="rounded bg-slate-900 text-white text-sm px-4 py-2 hover:bg-slate-800"
+            size="sm"
+            className="inline-flex items-center gap-2"
           >
+            <Plus className="w-4 h-4" />
             Buat Peminjaman
-          </button>
+          </Button>
         </div>
 
         {error && (
@@ -101,6 +114,6 @@ export default function PeminjamanPage() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

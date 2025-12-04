@@ -2,15 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ClipboardList } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { getAuth, clearAuth } from "@/lib/auth";
+import { useAuthStore } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Header } from "@/components/Header";
+import { Label } from "@/components/ui/label";
 
-type Peminjaman = any; // nanti bisa diketik sesuai response
+type Peminjaman = any; // ketikkan sesuai response BE bila perlu
 
 const allowedRoles = ["staff", "staff_prodi", "kepala_bagian_akademik"];
 
 export default function AdminPeminjamanPage() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+
   const [data, setData] = useState<Peminjaman[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [verifFilter, setVerifFilter] = useState<string>("");
@@ -18,9 +28,8 @@ export default function AdminPeminjamanPage() {
   const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
-    const { token, user } = getAuth();
-
     if (!token || !user) {
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -47,8 +56,6 @@ export default function AdminPeminjamanPage() {
     } catch (err: any) {
       console.error("LOAD ADMIN PEMINJAMAN ERROR", err);
       setError(err.message || "Gagal memuat data");
-      clearAuth();
-      router.replace("/login");
     } finally {
       setLoading(false);
     }
@@ -65,7 +72,6 @@ export default function AdminPeminjamanPage() {
   };
 
   const handleVerify = async (id: number, verifikasi: "diterima" | "ditolak") => {
-    const { token, user } = getAuth();
     if (!token || !user) return;
     if (!["staff_prodi", "kepala_bagian_akademik"].includes(user.role)) return;
 
@@ -85,7 +91,6 @@ export default function AdminPeminjamanPage() {
   };
 
   const handleActivate = async (id: number) => {
-    const { token, user } = getAuth();
     if (!token || !user) return;
     if (!["staff", "staff_prodi"].includes(user.role)) return;
 
@@ -104,7 +109,6 @@ export default function AdminPeminjamanPage() {
   };
 
   const handleReturn = async (id: number) => {
-    const { token, user } = getAuth();
     if (!token || !user) return;
     if (!["staff", "staff_prodi"].includes(user.role)) return;
 
@@ -125,147 +129,159 @@ export default function AdminPeminjamanPage() {
   if (loading) return <div className="p-6">Memuat...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-4">
-        <h1 className="text-xl font-semibold mb-2">Daftar Peminjaman</h1>
-
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        <form
-          onSubmit={handleFilter}
-          className="flex flex-wrap gap-3 items-end bg-white rounded border p-3 text-sm"
-        >
-          <div className="space-y-1">
-            <label className="font-medium text-slate-700">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="">Semua</option>
-              <option value="booking">booking</option>
-              <option value="aktif">aktif</option>
-              <option value="selesai">selesai</option>
-              <option value="batal">batal</option>
-            </select>
+    <div className="min-h-screen flex flex-col bg-slate-100">
+      <Header />
+      <motion.div
+        className="min-h-screen bg-slate-50 p-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+      >
+        <div className="max-w-6xl mx-auto space-y-4">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-slate-700" />
+            <h1 className="text-xl font-semibold mb-2">Daftar Peminjaman</h1>
           </div>
 
-          <div className="space-y-1">
-            <label className="font-medium text-slate-700">Verifikasi</label>
-            <select
-              value={verifFilter}
-              onChange={(e) => setVerifFilter(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="">Semua</option>
-              <option value="pending">pending</option>
-              <option value="diterima">diterima</option>
-              <option value="ditolak">ditolak</option>
-            </select>
-          </div>
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+              {error}
+            </p>
+          )}
 
-          <button
-            type="submit"
-            className="px-4 py-2 rounded bg-slate-900 text-white text-sm"
+          <motion.form
+            onSubmit={handleFilter}
+            className="flex flex-wrap gap-3 items-end bg-white rounded border p-3 text-sm"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.05 }}
           >
-            Terapkan
-          </button>
-        </form>
+            <div className="space-y-1">
+              <Label className="font-medium text-slate-700">Status</Label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="">Semua</option>
+                <option value="booking">booking</option>
+                <option value="aktif">aktif</option>
+                <option value="selesai">selesai</option>
+                <option value="batal">batal</option>
+              </select>
+            </div>
 
-        <div className="overflow-x-auto rounded border bg-white">
-          <table className="min-w-full text-xs sm:text-sm">
-            <thead className="bg-slate-100 text-left">
-              <tr>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Peminjam</th>
-                <th className="px-3 py-2">Agenda</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Verifikasi</th>
-                <th className="px-3 py-2">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((p: any) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-3 py-2">{p.id}</td>
-                  <td className="px-3 py-2">{p.user?.nama ?? "-"}</td>
-                  <td className="px-3 py-2">{p.Agenda}</td>
-                  <td className="px-3 py-2">{p.status}</td>
-                  <td className="px-3 py-2">{p.verifikasi}</td>
-                  <td className="px-3 py-2 space-x-1">
-                    {/* Verifikasi */}
-                    {p.status === "booking" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleVerify(p.id, "diterima")}
-                          className="px-2 py-1 rounded bg-emerald-600 text-white"
-                        >
-                          Terima
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleVerify(p.id, "ditolak")}
-                          className="px-2 py-1 rounded bg-red-600 text-white"
-                        >
-                          Tolak
-                        </button>
-                      </>
-                    )}
+            <div className="space-y-1">
+              <Label className="font-medium text-slate-700">Verifikasi</Label>
+              <select
+                value={verifFilter}
+                onChange={(e) => setVerifFilter(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="">Semua</option>
+                <option value="pending">pending</option>
+                <option value="diterima">diterima</option>
+                <option value="ditolak">ditolak</option>
+              </select>
+            </div>
 
-                    {/* Aktivasi */}
-                    {p.status === "booking" && p.verifikasi === "diterima" && (
-                      <button
-                        type="button"
-                        onClick={() => handleActivate(p.id)}
-                        className="px-2 py-1 rounded bg-blue-600 text-white"
-                      >
-                        Aktifkan
-                      </button>
-                    )}
+            <Button type="submit" className="px-4 py-2 text-sm">
+              Terapkan
+            </Button>
+          </motion.form>
 
-                    {/* Pengembalian */}
-                    {p.status === "aktif" && (
-                      <button
-                        type="button"
-                        onClick={() => handleReturn(p.id)}
-                        className="px-2 py-1 rounded bg-indigo-600 text-white"
-                      >
-                        Kembalikan
-                      </button>
-                    )}
-
-                    {/* Scan QR */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(`/admin/scan?kode=PINJAM-${p.id}`)
-                      }
-                      className="px-2 py-1 rounded bg-slate-700 text-white text-xs"
-                    >
-                      Scan
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {data.length === 0 && (
+          <div className="overflow-x-auto rounded border bg-white">
+            <table className="min-w-full text-xs sm:text-sm">
+              <thead className="bg-slate-100 text-left">
                 <tr>
-                  <td
-                    className="px-3 py-4 text-center text-slate-500"
-                    colSpan={6}
-                  >
-                    Tidak ada data.
-                  </td>
+                  <th className="px-3 py-2">ID</th>
+                  <th className="px-3 py-2">Peminjam</th>
+                  <th className="px-3 py-2">Agenda</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Verifikasi</th>
+                  <th className="px-3 py-2">Aksi</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.map((p: any) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-3 py-2">{p.id}</td>
+                    <td className="px-3 py-2">{p.user?.nama ?? "-"}</td>
+                    <td className="px-3 py-2">{p.Agenda}</td>
+                    <td className="px-3 py-2">{p.status}</td>
+                    <td className="px-3 py-2">{p.verifikasi}</td>
+                    <td className="px-3 py-2 space-x-1">
+                      {p.status === "booking" && (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="px-2 py-1 bg-emerald-600 text-white"
+                            onClick={() => handleVerify(p.id, "diterima")}
+                          >
+                            Terima
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="px-2 py-1 bg-red-600 text-white"
+                            onClick={() => handleVerify(p.id, "ditolak")}
+                          >
+                            Tolak
+                          </Button>
+                        </>
+                      )}
+
+                      {p.status === "booking" && p.verifikasi === "diterima" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="px-2 py-1 bg-blue-600 text-white"
+                          onClick={() => handleActivate(p.id)}
+                        >
+                          Aktifkan
+                        </Button>
+                      )}
+
+                      {p.status === "aktif" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="px-2 py-1 bg-indigo-600 text-white"
+                          onClick={() => handleReturn(p.id)}
+                        >
+                          Kembalikan
+                        </Button>
+                      )}
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="px-2 py-1 bg-slate-700 text-white text-xs"
+                        onClick={() =>
+                          router.push(`/admin/scan?kode=PINJAM-${p.id}`)
+                        }
+                      >
+                        Scan
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {data.length === 0 && (
+                  <tr>
+                    <td
+                      className="px-3 py-4 text-center text-slate-500"
+                      colSpan={6}
+                    >
+                      Tidak ada data.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

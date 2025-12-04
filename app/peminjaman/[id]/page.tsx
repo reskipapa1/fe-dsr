@@ -2,23 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { ClipboardList, ArrowLeft } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { getAuth, clearAuth } from "@/lib/auth";
+import { useAuthStore } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
 
-type PeminjamanDetail = any; // nanti bisa diketik sesuai BE
+type PeminjamanDetail = any; // isi sesuai tipe BE
 
 export default function PeminjamanDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+
   const [data, setData] = useState<PeminjamanDetail | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { token, user } = getAuth();
-
     if (!token || !user) {
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -33,7 +39,8 @@ export default function PeminjamanDetailPage() {
         const id = Number(params.id);
         const res = await apiFetch(`/peminjaman/${id}`, {}, token);
 
-        const detail = res.data?.peminjaman ?? res.data ?? res.peminjaman ?? res;
+        const detail =
+          res.data?.peminjaman ?? res.data ?? res.peminjaman ?? res;
         setData(detail);
 
         const qr = res.data?.qrCode ?? res.qrCode ?? null;
@@ -42,7 +49,7 @@ export default function PeminjamanDetailPage() {
         console.error("DETAIL PEMINJAMAN ERROR", err);
         setError(err.message || "Gagal memuat detail peminjaman");
         if (err.message?.includes("tidak memiliki izin")) {
-          clearAuth();
+          clearAuthStore();
           router.replace("/login");
         }
       } finally {
@@ -51,38 +58,52 @@ export default function PeminjamanDetailPage() {
     };
 
     load();
-  }, [router, params.id]);
+  }, [router, params.id, token, user, clearAuthStore]);
 
   if (loading) return <div className="p-6">Memuat...</div>;
 
   if (error)
     return (
-      <div className="p-6">
+      <div className="p-6 space-y-3">
         <p className="text-sm text-red-600">{error}</p>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => router.push("/peminjaman")}
-          className="mt-3 text-sm underline"
+          className="inline-flex items-center gap-2"
         >
+          <ArrowLeft className="w-4 h-4" />
           Kembali
-        </button>
+        </Button>
       </div>
     );
 
   if (!data) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <motion.div
+      className="min-h-screen bg-slate-50 p-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <div className="max-w-3xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">
-            Detail Peminjaman #{data.id}
-          </h1>
-          <button
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-slate-700" />
+            <h1 className="text-xl font-semibold">
+              Detail Peminjaman #{data.id}
+            </h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.push("/peminjaman")}
-            className="text-sm underline"
+            className="inline-flex items-center gap-1"
           >
+            <ArrowLeft className="w-4 h-4" />
             Kembali
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 text-sm">
@@ -126,12 +147,16 @@ export default function PeminjamanDetailPage() {
             <div>
               <span className="font-medium">Daftar Barang:</span>
               <ul className="list-disc list-inside text-xs mt-1">
-                {data.items?.map((item: any) => (
-                  <li key={item.id}>
-                    {item.barangUnit?.nup} -{" "}
-                    {item.barangUnit?.dataBarang?.jenis_barang}
-                  </li>
-                )) || <li>-</li>}
+                {data.items?.length ? (
+                  data.items.map((item: any) => (
+                    <li key={item.id}>
+                      {item.barangUnit?.nup} -{" "}
+                      {item.barangUnit?.dataBarang?.jenis_barang}
+                    </li>
+                  ))
+                ) : (
+                  <li>-</li>
+                )}
               </ul>
             </div>
 
@@ -150,6 +175,6 @@ export default function PeminjamanDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

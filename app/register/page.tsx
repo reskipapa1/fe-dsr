@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { UserPlus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,7 +35,6 @@ export default function RegisterPage() {
         email,
         password,
         nama,
-        // role biarkan kosong: backend bisa set default (mis. civitas_faste)
       };
 
       const res = await apiFetch("/auth/register", {
@@ -39,7 +45,6 @@ export default function RegisterPage() {
       console.log("REGISTER RESPONSE", res);
 
       setSuccess("Registrasi berhasil, silakan login.");
-      // opsional redirect otomatis
       setTimeout(() => router.push("/login"), 1500);
     } catch (err: any) {
       console.error("REGISTER ERROR", err);
@@ -50,106 +55,109 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white shadow-md rounded-lg p-6 space-y-4"
-      >
-        <h1 className="text-xl font-semibold text-slate-800 text-center">
-          Register DSR
-        </h1>
+    <div className="min-h-screen flex flex-col bg-slate-100">
+      <Header />
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        {success && (
-          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
-            {success}
-          </p>
-        )}
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">NIK</label>
-          <input
-            type="text"
-            className="w-full rounded border px-3 py-2 text-sm"
-            value={nik}
-            onChange={(e) => setNik(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">
-            Nomor Identitas Tunggal
-          </label>
-          <input
-            type="text"
-            className="w-full rounded border px-3 py-2 text-sm"
-            value={nomorIT}
-            onChange={(e) => setNomorIT(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">Nama</label>
-          <input
-            type="text"
-            className="w-full rounded border px-3 py-2 text-sm"
-            value={nama}
-            onChange={(e) => setNama(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">Email</label>
-          <input
-            type="email"
-            className="w-full rounded border px-3 py-2 text-sm"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">Password</label>
-          <input
-            type="password"
-            className="w-full rounded border px-3 py-2 text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <p className="text-[11px] text-slate-500">
-            Minimal 8 karakter dan mengandung huruf besar, huruf kecil, dan angka.
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-slate-900 text-white py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-60"
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <motion.form
+          onSubmit={handleSubmit}
+          className="w-full max-w-md bg-white shadow-md rounded-lg p-6 space-y-4"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          {loading ? "Mendaftar..." : "Daftar"}
-        </button>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <UserPlus className="w-5 h-5 text-slate-700" />
+            <h1 className="text-xl font-semibold text-slate-800 text-center">
+              Daftar Akun BMN FASTe
+            </h1>
+          </div>
 
-        <p className="text-xs text-slate-600 text-center">
-          Sudah punya akun?{" "}
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="underline"
-          >
-            Login
-          </button>
-        </p>
-      </form>
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          {success && (
+            <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+              {success}
+            </p>
+          )}
+
+          <div className="space-y-1">
+            <Label htmlFor="nik">NIK</Label>
+            <Input
+              id="nik"
+              value={nik}
+              onChange={(e) => setNik(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="nomorIT">Nomor Identitas Tunggal</Label>
+            <Input
+              id="nomorIT"
+              value={nomorIT}
+              onChange={(e) => setNomorIT(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="nama">Nama</Label>
+            <Input
+              id="nama"
+              value={nama}
+              onChange={(e) => setNama(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <p className="text-[11px] text-slate-500">
+              Minimal 8 karakter dan mengandung huruf besar, huruf kecil, dan angka.
+            </p>
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Mendaftar..." : "Daftar"}
+          </Button>
+
+          <p className="text-xs text-slate-600 text-center">
+            Sudah punya akun?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="underline"
+            >
+              Login
+            </button>
+          </p>
+        </motion.form>
+      </div>
+
+      <Footer />
     </div>
   );
 }

@@ -2,30 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ClipboardPen, ArrowLeft } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { getAuth } from "@/lib/auth";
+import { useAuthStore } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Lokasi = { kode_lokasi: string; lokasi: string };
+type Barang = {
+  nup: string;
+  status: string;
+  dataBarang: { jenis_barang: string; merek: string };
+};
 
 export default function BuatPeminjamanPage() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+
   const [lokasiList, setLokasiList] = useState<Lokasi[]>([]);
+  const [barangList, setBarangList] = useState<Barang[]>([]);
   const [kodeLokasi, setKodeLokasi] = useState("");
   const [lokasiTambahan, setLokasiTambahan] = useState("");
   const [noHp, setNoHp] = useState("");
   const [agenda, setAgenda] = useState("");
   const [waktuMulai, setWaktuMulai] = useState("");
   const [waktuSelesai, setWaktuSelesai] = useState("");
-  const [nupText, setNupText] = useState(""); // input NUP manual
+  const [nupText, setNupText] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const { token, user } = getAuth();
-
     if (!token || !user) {
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -37,9 +51,15 @@ export default function BuatPeminjamanPage() {
 
     const load = async () => {
       try {
-        // civitas boleh /lokasi/available
         const lokasiRes = await apiFetch("/lokasi/available", {}, token);
         setLokasiList(lokasiRes.data ?? lokasiRes);
+
+        const barangRes = await apiFetch(
+          "/barangunit/available-for-peminjaman",
+          {},
+          token
+        );
+        setBarangList(barangRes.data ?? barangRes);
       } catch (err: any) {
         console.error(err);
         setError(err.message || "Gagal memuat data awal");
@@ -49,11 +69,21 @@ export default function BuatPeminjamanPage() {
     };
 
     load();
-  }, [router]);
+  }, [router, token, user, clearAuthStore]);
+
+  const addNup = (nup: string) => {
+    setNupText((prev) => {
+      const list = prev
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (list.includes(nup)) return prev;
+      return list.length === 0 ? nup : `${prev.trim()}, ${nup}`;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { token } = getAuth();
     if (!token) return;
 
     setError(null);
@@ -61,7 +91,6 @@ export default function BuatPeminjamanPage() {
     setSubmitting(true);
 
     try {
-      // pecah NUP dari textarea jadi array
       const rawNups = nupText
         .split(",")
         .map((s) => s.trim())
@@ -97,12 +126,9 @@ export default function BuatPeminjamanPage() {
       const created = res.data?.peminjaman ?? res.peminjaman ?? res;
       const id = created.id;
       setSuccess("Peminjaman berhasil dibuat.");
-      // opsional: redirect ke list
       if (id) {
-  // redirect ke halaman detail
-  router.push(`/peminjaman/${id}`);
+        router.push(`/peminjaman/${id}`);
       }
-      // router.push("/peminjaman");
     } catch (err: any) {
       console.error("CREATE PEMINJAMAN ERROR", err);
       setError(err.message || "Gagal membuat peminjaman");
@@ -114,9 +140,28 @@ export default function BuatPeminjamanPage() {
   if (loading) return <div className="p-6">Memuat...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <motion.div
+      className="min-h-screen bg-slate-50 p-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <div className="max-w-3xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Buat Peminjaman</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardPen className="w-5 h-5 text-slate-700" />
+            <h1 className="text-xl font-semibold">Buat Peminjaman</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/peminjaman")}
+            className="inline-flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
+          </Button>
+        </div>
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
@@ -132,9 +177,7 @@ export default function BuatPeminjamanPage() {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
-            <label className="text-sm font-medium">
-              Lokasi (pilih salah satu)
-            </label>
+            <Label>Lokasi (pilih salah satu)</Label>
             <select
               className="w-full border rounded px-3 py-2 text-sm"
               value={kodeLokasi}
@@ -147,20 +190,19 @@ export default function BuatPeminjamanPage() {
                 </option>
               ))}
             </select>
-            <input
+            <Input
               type="text"
               placeholder="Lokasi tambahan (opsional)"
-              className="w-full border rounded px-3 py-2 text-sm mt-2"
+              className="mt-2"
               value={lokasiTambahan}
               onChange={(e) => setLokasiTambahan(e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">No HP</label>
-            <input
+            <Label>No HP</Label>
+            <Input
               type="tel"
-              className="w-full border rounded px-3 py-2 text-sm"
               value={noHp}
               onChange={(e) => setNoHp(e.target.value)}
               required
@@ -168,7 +210,7 @@ export default function BuatPeminjamanPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Agenda</label>
+            <Label>Agenda</Label>
             <textarea
               className="w-full border rounded px-3 py-2 text-sm"
               value={agenda}
@@ -179,20 +221,18 @@ export default function BuatPeminjamanPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Waktu Mulai</label>
-              <input
+              <Label>Waktu Mulai</Label>
+              <Input
                 type="datetime-local"
-                className="w-full border rounded px-3 py-2 text-sm"
                 value={waktuMulai}
                 onChange={(e) => setWaktuMulai(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Waktu Selesai</label>
-              <input
+              <Label>Waktu Selesai</Label>
+              <Input
                 type="datetime-local"
-                className="w-full border rounded px-3 py-2 text-sm"
                 value={waktuSelesai}
                 onChange={(e) => setWaktuSelesai(e.target.value)}
                 required
@@ -201,40 +241,51 @@ export default function BuatPeminjamanPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">
-              Daftar NUP Barang (pisahkan dengan koma)
-            </label>
+            <Label>Daftar NUP Barang (pisahkan dengan koma)</Label>
             <textarea
               className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="Contoh: 12345, 67890, 11223"
+              placeholder="Contoh: 4.1, 27.1, 28.1"
               value={nupText}
               onChange={(e) => setNupText(e.target.value)}
               required
             />
             <p className="text-[11px] text-slate-500">
-              Masukkan NUP yang ingin dipinjam. Sistem akan mengecek ketersediaan
-              otomatis.
+              Masukkan NUP yang ingin dipinjam, atau pilih dari daftar barang
+              tersedia di bawah.
             </p>
+
+            {barangList.length > 0 && (
+              <div className="mt-2 max-h-52 overflow-y-auto border rounded p-2 space-y-1 text-xs">
+                {barangList.map((b) => (
+                  <button
+                    key={b.nup}
+                    type="button"
+                    onClick={() => addNup(b.nup)}
+                    className="w-full text-left px-2 py-1 rounded hover:bg-slate-100"
+                  >
+                    <span className="font-mono text-[11px]">{b.nup}</span> —{" "}
+                    {b.dataBarang.jenis_barang} ({b.dataBarang.merek})
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => router.push("/peminjaman")}
-              className="px-4 py-2 text-sm rounded border"
             >
               Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 text-sm rounded bg-slate-900 text-white disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" disabled={submitting} size="sm">
               {submitting ? "Menyimpan..." : "Simpan"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 }

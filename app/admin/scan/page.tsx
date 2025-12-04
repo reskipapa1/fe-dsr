@@ -1,14 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { ScanQrCode } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { getAuth, clearAuth } from "@/lib/auth";
+import { useAuthStore } from "@/lib/auth-store";
 import { Html5Qrcode } from "html5-qrcode";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ScanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+
+  const qrRef = useRef<Html5Qrcode | null>(null);
+  const startedRef = useRef(false);
+
   const [kodeQR, setKodeQR] = useState("");
   const [loadingPickup, setLoadingPickup] = useState(false);
   const [loadingReturn, setLoadingReturn] = useState(false);
@@ -23,8 +35,8 @@ export default function ScanPage() {
 
   // Batasi akses: hanya staff & staff_prodi
   useEffect(() => {
-    const { token, user } = getAuth();
     if (!token || !user) {
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -32,16 +44,20 @@ export default function ScanPage() {
       router.replace("/peminjaman");
       return;
     }
-  }, [router]);
+  }, [router, token, user, clearAuthStore]);
 
   // Scanner kamera dengan html5-qrcode
   useEffect(() => {
     const elId = "qr-reader";
-    let qr: Html5Qrcode | null = null;
 
     const startScanner = async () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+
       try {
-        qr = new Html5Qrcode(elId);
+        const qr = new Html5Qrcode(elId);
+        qrRef.current = qr;
+
         await qr.start(
           { facingMode: "environment" },
           {
@@ -56,7 +72,7 @@ export default function ScanPage() {
             }
           },
           () => {
-            // error per frame bisa diabaikan
+            // error per frame diabaikan
           }
         );
       } catch (e: any) {
@@ -68,16 +84,16 @@ export default function ScanPage() {
       }
     };
 
-    // hanya jalan di browser
     if (typeof window !== "undefined") {
       startScanner();
     }
 
     return () => {
+      const qr = qrRef.current;
       if (qr) {
         qr
           .stop()
-          .then(() => qr?.clear())
+          .then(() => qr.clear())
           .catch(() => {});
       }
     };
@@ -109,10 +125,9 @@ export default function ScanPage() {
       return;
     }
 
-    const { token } = getAuth();
     if (!token) {
       setError("Sesi login sudah habis. Silakan login ulang.");
-      clearAuth();
+      clearAuthStore();
       router.replace("/login");
       return;
     }
@@ -160,9 +175,17 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <motion.div
+      className="min-h-screen bg-slate-50 p-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
       <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Scan QR Peminjaman</h1>
+        <div className="flex items-center gap-2">
+          <ScanQrCode className="w-5 h-5 text-indigo-600" />
+          <h1 className="text-xl font-semibold">Scan QR Peminjaman</h1>
+        </div>
         <p className="text-sm text-slate-600">
           Arahkan kamera ke QR peminjaman atau masukkan teks (format:
           PINJAM-123), lalu pilih apakah ini scan{" "}
@@ -170,7 +193,6 @@ export default function ScanPage() {
           <span className="font-medium">Return</span>.
         </p>
 
-        {/* Area kamera */}
         <div
           id="qr-reader"
           className="w-full max-w-xs mx-auto border rounded mb-2"
@@ -190,10 +212,9 @@ export default function ScanPage() {
 
         <form className="space-y-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Kode QR</label>
-            <input
+            <Label className="text-sm font-medium">Kode QR</Label>
+            <Input
               type="text"
-              className="w-full border rounded px-3 py-2 text-sm"
               placeholder="Contoh: PINJAM-12"
               value={kodeQR}
               onChange={(e) => setKodeQR(e.target.value)}
@@ -201,20 +222,22 @@ export default function ScanPage() {
           </div>
 
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={handlePickup}
               disabled={loadingPickup || loadingReturn}
-              className="px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-60"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+              type="button"
             >
               {loadingPickup ? "Memproses Pickup..." : "Scan Pickup"}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleReturn}
               disabled={loadingPickup || loadingReturn}
-              className="px-4 py-2 rounded bg-indigo-600 text-white text-sm disabled:opacity-60"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
+              type="button"
             >
               {loadingReturn ? "Memproses Return..." : "Scan Return"}
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -225,6 +248,6 @@ export default function ScanPage() {
           Kembali ke daftar peminjaman
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
