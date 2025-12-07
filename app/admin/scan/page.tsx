@@ -1,7 +1,9 @@
 "use client";
-export const dynamic = "force-dynamic";
 
-import { useEffect, useRef, useState } from "react";
+// Hapus baris 'export const dynamic' karena kita akan pakai Suspense
+// export const dynamic = "force-dynamic"; 
+
+import { useEffect, useRef, useState, Suspense } from "react"; // Tambah import Suspense
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ScanQrCode } from "lucide-react";
@@ -12,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function ScanPage() {
+// 1. Ubah nama komponen utama kamu menjadi "ScanContent" (bukan default export)
+function ScanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((s) => s.user);
@@ -52,6 +55,9 @@ export default function ScanPage() {
     const elId = "qr-reader";
 
     const startScanner = async () => {
+      // Cek apakah elemen ada sebelum scan
+      if (!document.getElementById(elId)) return;
+      
       if (startedRef.current) return;
       startedRef.current = true;
 
@@ -175,79 +181,89 @@ export default function ScanPage() {
   };
 
   return (
+    <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <ScanQrCode className="w-5 h-5 text-indigo-600" />
+        <h1 className="text-xl font-semibold">Scan QR Peminjaman</h1>
+      </div>
+      <p className="text-sm text-slate-600">
+        Arahkan kamera ke QR peminjaman atau masukkan teks (format:
+        PINJAM-123), lalu pilih apakah ini scan{" "}
+        <span className="font-medium">Pickup</span> atau{" "}
+        <span className="font-medium">Return</span>.
+      </p>
+
+      {/* Container ID untuk kamera */}
+      <div
+        id="qr-reader"
+        className="w-full max-w-xs mx-auto border rounded mb-2"
+      />
+
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      {message && (
+        <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+          {message}
+        </p>
+      )}
+
+      <form className="space-y-4">
+        <div className="space-y-1">
+          <Label className="text-sm font-medium">Kode QR</Label>
+          <Input
+            type="text"
+            placeholder="Contoh: PINJAM-12"
+            value={kodeQR}
+            onChange={(e) => setKodeQR(e.target.value)}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            onClick={handlePickup}
+            disabled={loadingPickup || loadingReturn}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+            type="button"
+          >
+            {loadingPickup ? "Memproses Pickup..." : "Scan Pickup"}
+          </Button>
+          <Button
+            onClick={handleReturn}
+            disabled={loadingPickup || loadingReturn}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
+            type="button"
+          >
+            {loadingReturn ? "Memproses Return..." : "Scan Return"}
+          </Button>
+        </div>
+      </form>
+
+      <button
+        onClick={() => router.push("/admin/peminjaman")}
+        className="text-sm underline text-slate-700"
+      >
+        Kembali ke daftar peminjaman
+      </button>
+    </div>
+  );
+}
+
+// 2. Buat komponen default export baru yang membungkus ScanContent dengan Suspense
+export default function ScanPage() {
+  return (
     <motion.div
       className="min-h-screen bg-slate-50 p-6"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
-      <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <ScanQrCode className="w-5 h-5 text-indigo-600" />
-          <h1 className="text-xl font-semibold">Scan QR Peminjaman</h1>
-        </div>
-        <p className="text-sm text-slate-600">
-          Arahkan kamera ke QR peminjaman atau masukkan teks (format:
-          PINJAM-123), lalu pilih apakah ini scan{" "}
-          <span className="font-medium">Pickup</span> atau{" "}
-          <span className="font-medium">Return</span>.
-        </p>
-
-        <div
-          id="qr-reader"
-          className="w-full max-w-xs mx-auto border rounded mb-2"
-        />
-
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        {message && (
-          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
-            {message}
-          </p>
-        )}
-
-        <form className="space-y-4">
-          <div className="space-y-1">
-            <Label className="text-sm font-medium">Kode QR</Label>
-            <Input
-              type="text"
-              placeholder="Contoh: PINJAM-12"
-              value={kodeQR}
-              onChange={(e) => setKodeQR(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={handlePickup}
-              disabled={loadingPickup || loadingReturn}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
-              type="button"
-            >
-              {loadingPickup ? "Memproses Pickup..." : "Scan Pickup"}
-            </Button>
-            <Button
-              onClick={handleReturn}
-              disabled={loadingPickup || loadingReturn}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
-              type="button"
-            >
-              {loadingReturn ? "Memproses Return..." : "Scan Return"}
-            </Button>
-          </div>
-        </form>
-
-        <button
-          onClick={() => router.push("/admin/peminjaman")}
-          className="text-sm underline text-slate-700"
-        >
-          Kembali ke daftar peminjaman
-        </button>
-      </div>
+      <Suspense fallback={<div className="text-center p-6">Memuat Scanner...</div>}>
+        <ScanContent />
+      </Suspense>
     </motion.div>
   );
 }
