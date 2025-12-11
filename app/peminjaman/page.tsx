@@ -9,6 +9,8 @@ import { useAuthStore } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 
 type Peminjaman = any; // sesuaikan dengan tipe BE
+type Barang = any;
+type Lokasi = any;
 
 export default function PeminjamanPage() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function PeminjamanPage() {
   const clearAuthStore = useAuthStore((s) => s.clearAuth);
 
   const [data, setData] = useState<Peminjaman[]>([]);
+  const [barangList, setBarangList] = useState<Barang[]>([]);
+  const [lokasiList, setLokasiList] = useState<Lokasi[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +38,16 @@ export default function PeminjamanPage() {
 
     const load = async () => {
       try {
-        const res = await apiFetch("/peminjaman", {}, token);
-        setData(res.data ?? res);
+        const peminjamanRes = await apiFetch("/peminjaman", {}, token);
+        setData(peminjamanRes.data ?? peminjamanRes);
+
+        const barangRes = await apiFetch("/barangunit/available-for-peminjaman", {}, token);
+        setBarangList(barangRes.data ?? barangRes);
+
+        const lokasiRes = await apiFetch("/lokasi", {}, token);
+        setLokasiList(lokasiRes.data ?? lokasiRes);
       } catch (err: any) {
-        console.error("LOAD PEMINJAMAN ERROR", err);
+        console.error("LOAD DATA ERROR", err);
         setError(err.message || "Gagal memuat data");
       } finally {
         setLoading(false);
@@ -113,6 +123,64 @@ export default function PeminjamanPage() {
             </table>
           </div>
         )}
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Daftar Barang Unit</h2>
+          {barangList.length === 0 ? (
+            <p className="text-sm text-slate-500">Tidak ada data barang.</p>
+          ) : (
+            <div className="overflow-x-auto rounded border bg-white">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-100 text-left">
+                  <tr>
+                    <th className="px-3 py-2">NUP</th>
+                    <th className="px-3 py-2">Jenis Barang</th>
+                    <th className="px-3 py-2">Merek</th>
+                    <th className="px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {barangList.map((b: any) => (
+                    <tr key={b.nup} className="border-t">
+                      <td className="px-3 py-2">{b.nup}</td>
+                      <td className="px-3 py-2">{b.dataBarang?.jenis_barang}</td>
+                      <td className="px-3 py-2">{b.dataBarang?.merek}</td>
+                      <td className="px-3 py-2">{b.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Daftar Lokasi</h2>
+          {lokasiList.length === 0 ? (
+            <p className="text-sm text-slate-500">Tidak ada data lokasi.</p>
+          ) : (
+            <div className="overflow-x-auto rounded border bg-white">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-100 text-left">
+                  <tr>
+                    <th className="px-3 py-2">Kode Lokasi</th>
+                    <th className="px-3 py-2">Lokasi</th>
+                    <th className="px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lokasiList.map((l: any) => (
+                    <tr key={l.kode_lokasi} className="border-t">
+                      <td className="px-3 py-2">{l.kode_lokasi}</td>
+                      <td className="px-3 py-2">{l.lokasi}</td>
+                      <td className="px-3 py-2">{l.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );

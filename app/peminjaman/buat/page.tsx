@@ -25,6 +25,7 @@ export default function BuatPeminjamanPage() {
 
   const [lokasiList, setLokasiList] = useState<Lokasi[]>([]);
   const [barangList, setBarangList] = useState<Barang[]>([]);
+  const [loanType, setLoanType] = useState<'location' | 'items'>('location');
   const [kodeLokasi, setKodeLokasi] = useState("");
   const [lokasiTambahan, setLokasiTambahan] = useState("");
   const [noHp, setNoHp] = useState("");
@@ -36,6 +37,11 @@ export default function BuatPeminjamanPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const allowedJenis = ["Proyektor", "Microphone", "Sound System"];
+  const filteredBarangList = loanType === 'location'
+    ? barangList
+    : barangList.filter((b) => allowedJenis.includes(b.dataBarang?.jenis_barang));
 
   useEffect(() => {
     if (!token || !user) {
@@ -102,11 +108,47 @@ export default function BuatPeminjamanPage() {
         return;
       }
 
+      // Validasi aturan peminjaman civitas_faste
+      if (loanType === 'location') {
+        // Peminjaman lokasi + barang tambahan: bisa multi hari
+        // Kode lokasi optional, barang bisa apa saja
+      } else {
+        // Peminjaman barang saja: harus pilih lokasi, hanya proyektor/sound system, per hari
+        if (!kodeLokasi) {
+          setError("Untuk peminjaman barang saja, lokasi wajib dipilih");
+          setSubmitting(false);
+          return;
+        }
+        if (lokasiTambahan) {
+          setError("Untuk peminjaman barang saja, tidak boleh mengisi lokasi tambahan");
+          setSubmitting(false);
+          return;
+        }
+        // Check if all barang are allowed
+        const selectedBarang = barangList.filter(b => rawNups.includes(b.nup));
+        const invalid = selectedBarang.filter(b => !allowedJenis.includes(b.dataBarang?.jenis_barang));
+        if (invalid.length > 0) {
+          setError("Peminjaman barang saja hanya boleh proyektor atau sound system");
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      let adjustedWaktuMulai = waktuMulai;
+      let adjustedWaktuSelesai = waktuSelesai;
+
+      if (loanType === 'items') {
+        // For barang saja, set date to today
+        const today = new Date().toISOString().split('T')[0];
+        adjustedWaktuMulai = `${today}T${waktuMulai}:00`;
+        adjustedWaktuSelesai = `${today}T${waktuSelesai}:00`;
+      }
+
       const payload: any = {
         no_hp: noHp,
         Agenda: agenda,
-        waktuMulai,
-        waktuSelesai,
+        waktuMulai: adjustedWaktuMulai,
+        waktuSelesai: adjustedWaktuSelesai,
         barangList: rawNups,
       };
 
@@ -177,7 +219,33 @@ export default function BuatPeminjamanPage() {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
-            <Label>Lokasi (pilih salah satu)</Label>
+            <Label>Jenis Peminjaman</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="loanType"
+                  value="location"
+                  checked={loanType === 'location'}
+                  onChange={() => setLoanType('location')}
+                />
+                Peminjaman Lokasi + Barang Tambahan
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="loanType"
+                  value="items"
+                  checked={loanType === 'items'}
+                  onChange={() => setLoanType('items')}
+                />
+                Peminjaman Barang Saja
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Lokasi {loanType === 'items' ? '(wajib)' : '(pilih salah satu)'}</Label>
             <select
               className="w-full border rounded px-3 py-2 text-sm"
               value={kodeLokasi}
@@ -223,7 +291,7 @@ export default function BuatPeminjamanPage() {
             <div className="space-y-1">
               <Label>Waktu Mulai</Label>
               <Input
-                type="datetime-local"
+                type={loanType === 'location' ? "datetime-local" : "time"}
                 value={waktuMulai}
                 onChange={(e) => setWaktuMulai(e.target.value)}
                 required
@@ -232,7 +300,7 @@ export default function BuatPeminjamanPage() {
             <div className="space-y-1">
               <Label>Waktu Selesai</Label>
               <Input
-                type="datetime-local"
+                type={loanType === 'location' ? "datetime-local" : "time"}
                 value={waktuSelesai}
                 onChange={(e) => setWaktuSelesai(e.target.value)}
                 required
@@ -254,9 +322,9 @@ export default function BuatPeminjamanPage() {
               tersedia di bawah.
             </p>
 
-            {barangList.length > 0 && (
+            {filteredBarangList.length > 0 && (
               <div className="mt-2 max-h-52 overflow-y-auto border rounded p-2 space-y-1 text-xs">
-                {barangList.map((b) => (
+                {filteredBarangList.map((b) => (
                   <button
                     key={b.nup}
                     type="button"

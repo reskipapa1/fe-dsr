@@ -44,6 +44,7 @@ export default function PeminjamanDetailPage() {
         setData(detail);
 
         const qr = res.data?.qrCode ?? res.qrCode ?? null;
+        console.log("QR Code from API:", qr);
         if (qr) setQrCode(qr);
       } catch (err: any) {
         console.error("DETAIL PEMINJAMAN ERROR", err);
