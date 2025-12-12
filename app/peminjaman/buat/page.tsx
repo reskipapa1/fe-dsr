@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ClipboardPen, ArrowLeft } from "lucide-react";
@@ -17,7 +17,7 @@ type Barang = {
   dataBarang: { jenis_barang: string; merek: string };
 };
 
-export default function BuatPeminjamanPage() {
+function BuatPeminjamanClient() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -366,5 +366,13 @@ export default function BuatPeminjamanPage() {
         </form>
       </div>
     </motion.div>
+  );
+}
+
+export default function BuatPeminjamanPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Memuat...</div>}>
+      <BuatPeminjamanClient />
+    </Suspense>
   );
 }
