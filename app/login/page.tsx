@@ -57,6 +57,7 @@ export default function LoginPage() {
         nama: user.nama,
         email: user.email,
         role: user.role,
+        jurusan: user.jurusan,
       });
 
       toast.success(`Selamat datang, ${user.nama}!`);

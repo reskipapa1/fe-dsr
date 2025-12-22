@@ -9,6 +9,7 @@ export type UserInfo = {
   nama: string;
   email: string;
   role: string;
+  jurusan: string;
 };
 
 type AuthState = {
