@@ -112,10 +112,10 @@ export default function AdminMonitoringPage() {
     } else if (user.role === "staff") {
       cards.push(
         {
-          title: "Daftar Barang (Non-Proyektor)",
-          description: "Lihat daftar barang selain proyektor",
+          title: "Daftar Semua Barang",
+          description: "Lihat daftar semua barang",
           icon: <Package className="w-5 h-5 text-purple-600" />,
-          onClick: () => handleCardClick("/admin/monitoring/barang-non-proyektor"),
+          onClick: () => handleCardClick("/admin/monitoring/semua-barang"),
         },
         {
           title: "Daftar Semua Lokasi",

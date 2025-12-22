@@ -1,13 +1,25 @@
-// app/profil/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { UserCircle2, ArrowLeft, LogOut, Settings2 } from "lucide-react";
+import { 
+  ArrowLeft, 
+  LogOut, 
+  Settings, 
+  User, 
+  Mail, 
+  CreditCard, 
+  ShieldCheck 
+} from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+
+// Shadcn Components
 import { Button } from "@/components/ui/button";
-import { Header } from "@/components/Header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 type UserProfile = {
   nik: string;
@@ -25,15 +37,14 @@ const roleLabel: Record<string, string> = {
 
 export default function ProfilPage() {
   const router = useRouter();
-  const storeUser = useAuthStore((s) => s.user);
-  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+  const { user: storeUser, clearAuth } = useAuthStore();
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!storeUser) {
-      clearAuthStore();
+      clearAuth();
       router.replace("/login");
       return;
     }
@@ -45,96 +56,139 @@ export default function ProfilPage() {
       role: storeUser.role,
     });
     setLoading(false);
-  }, [storeUser, router, clearAuthStore]);
-
-  if (loading) return <div className="p-6">Memuat...</div>;
-  if (!user) return null;
-
-  const backHref =
-    user.role === "civitas_faste" ? "/peminjaman" : "/admin/peminjaman";
+  }, [storeUser, router, clearAuth]);
 
   const handleLogout = () => {
-    clearAuthStore();
+    clearAuth();
     router.replace("/login");
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
 
+  if (loading) return <LoadingOverlay isLoading={true} message="Memuat profil..." />;
+  if (!user) return null;
+
+  const backHref = "/peminjaman";
+
+  return (
+    <div className="flex min-h-[80vh] flex-col items-center justify-center p-4">
       <motion.div
-        className="p-6"
-        initial={{ opacity: 0, y: 12 }}
+        className="w-full max-w-lg"
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        transition={{ duration: 0.3 }}
       >
-        <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <UserCircle2 className="w-6 h-6 text-slate-700" />
-              <h1 className="text-xl font-semibold">Profil</h1>
-            </div>
+        {/* Tombol Kembali */}
+        <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+              Profil Saya
+            </h1>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => router.push(backHref)}
-              className="inline-flex items-center gap-1"
+              className="gap-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="h-4 w-4" />
               Kembali
             </Button>
-          </div>
+        </div>
 
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="font-medium">NIK: </span>
-              <span>{user.nik}</span>
+        <Card className="overflow-hidden shadow-lg border-slate-200 dark:border-slate-800">
+          {/* Header Card dengan Background */}
+          <div className="h-24 bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-900 dark:to-teal-900" />
+          
+          <CardHeader className="relative px-6 pb-2">
+            {/* Avatar Circle */}
+            <div className="absolute -top-12 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-slate-100 text-2xl font-bold text-slate-600 shadow-md dark:border-slate-950 dark:bg-slate-800 dark:text-slate-300">
+              {getInitials(user.nama)}
             </div>
-            <div>
-              <span className="font-medium">Nama: </span>
-              <span>{user.nama}</span>
+            
+            <div className="pt-12">
+               <div className="flex items-center justify-between">
+                 <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
+                      {user.nama}
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {user.email}
+                    </p>
+                 </div>
+                 <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
+                   {roleLabel[user.role] || user.role}
+                 </Badge>
+               </div>
             </div>
-            <div>
-              <span className="font-medium">Email: </span>
-              <span>{user.email}</span>
-            </div>
-            <div>
-              <span className="font-medium">Role: </span>
-              <span>{roleLabel[user.role] ?? user.role}</span>
-            </div>
-          </div>
+          </CardHeader>
 
-          <p className="text-xs text-slate-500">
-            Pengubahan data profil (nama, email, password) dapat dilakukan
-            melalui halaman pengelolaan akun.
-          </p>
+          <CardContent className="space-y-6 px-6 py-6">
+            <div className="grid gap-4">
+               {/* Detail Info Items */}
+               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">Nomor Induk (NIK/NIP)</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-200">{user.nik}</p>
+                  </div>
+               </div>
 
-          <div className="pt-3 border-t flex items-center justify-between gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="inline-flex items-center gap-1"
-              onClick={() =>
-                router.push(
-                  user.role === "civitas_faste" ? "/akun" : "/admin/akun"
-                )
-              }
+               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">Email Terdaftar</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-200">{user.email}</p>
+                  </div>
+               </div>
+
+               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">Status Akun</p>
+                    <p className="font-medium text-emerald-600 dark:text-emerald-400">Aktif & Terverifikasi</p>
+                  </div>
+               </div>
+            </div>
+            
+            <Separator />
+            
+            <p className="text-center text-xs text-slate-400">
+              Ingin mengubah data? Silakan akses menu Kelola Akun di bawah.
+            </p>
+          </CardContent>
+
+          <CardFooter className="flex gap-3 bg-slate-50/50 p-6 dark:bg-slate-900/50">
+            <Button 
+              className="flex-1 gap-2"
+              variant="default"
+              onClick={() => router.push("/akun")} // Sesuaikan path jika beda
             >
-              <Settings2 className="w-4 h-4" />
+              <Settings className="h-4 w-4" />
               Kelola Akun
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="inline-flex items-center gap-1 text-red-600 border-red-200"
+            
+            <Button 
+              variant="destructive"
+              className="flex-1 gap-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4" />
-              Logout
+              <LogOut className="h-4 w-4" />
+              Keluar
             </Button>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       </motion.div>
     </div>
   );

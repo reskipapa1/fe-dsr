@@ -27,11 +27,13 @@ export async function apiFetch(
   const isJson = contentType && contentType.includes("application/json");
   const data = isJson ? await res.json() : null;
 
-  if (!res.ok) {
+  if (!res.ok || (data && !data.success)) {
     const message =
       (data && (data.message || data.error)) ||
       `Request failed with status ${res.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    (error as any).data = data;
+    throw error;
   }
 
   return data;

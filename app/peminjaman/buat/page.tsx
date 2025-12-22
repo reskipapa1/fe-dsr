@@ -3,12 +3,27 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ClipboardPen, ArrowLeft } from "lucide-react";
+import { ClipboardPen, ArrowLeft, Clock, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
+import { toast } from "sonner"; // Pakai sonner untuk notifikasi
+
+// Shadcn Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 type Lokasi = { kode_lokasi: string; lokasi: string };
 type Barang = {
@@ -19,30 +34,36 @@ type Barang = {
 
 function BuatPeminjamanClient() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
-  const clearAuthStore = useAuthStore((s) => s.clearAuth);
   const searchParams = useSearchParams();
+  const { user, token, clearAuth: clearAuthStore } = useAuthStore();
 
   const [lokasiList, setLokasiList] = useState<Lokasi[]>([]);
   const [barangList, setBarangList] = useState<Barang[]>([]);
-  const [loanType, setLoanType] = useState<'location' | 'items'>('location');
+  
+  // State Form
+  const [loanType, setLoanType] = useState<"location" | "items">("location");
   const [kodeLokasi, setKodeLokasi] = useState("");
   const [lokasiTambahan, setLokasiTambahan] = useState("");
   const [noHp, setNoHp] = useState("");
   const [agenda, setAgenda] = useState("");
   const [waktuMulai, setWaktuMulai] = useState("");
   const [waktuSelesai, setWaktuSelesai] = useState("");
-  const [nupText, setNupText] = useState("");
+  
+  // State Barang Terpilih (NUP)
+  const [selectedNups, setSelectedNups] = useState<string[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const allowedJenis = ["Proyektor", "Microphone", "Sound System"];
-  const filteredBarangList = loanType === 'location'
-    ? barangList
-    : barangList.filter((b) => allowedJenis.includes(b.dataBarang?.jenis_barang));
+
+  // Filter barang sesuai jenis peminjaman
+  const filteredBarangList =
+    loanType === "location"
+      ? barangList
+      : barangList.filter((b) =>
+          allowedJenis.includes(b.dataBarang?.jenis_barang)
+        );
 
   useEffect(() => {
     if (!token || !user) {
@@ -50,7 +71,6 @@ function BuatPeminjamanClient() {
       router.replace("/login");
       return;
     }
-
     if (user.role !== "civitas_faste") {
       router.replace("/admin");
       return;
@@ -58,99 +78,69 @@ function BuatPeminjamanClient() {
 
     const load = async () => {
       try {
-        const lokasiRes = await apiFetch("/lokasi/available", {}, token);
+        const [lokasiRes, barangRes] = await Promise.all([
+          apiFetch("/lokasi/available", {}, token),
+          apiFetch("/barangunit/available-for-peminjaman", {}, token),
+        ]);
         setLokasiList(lokasiRes.data ?? lokasiRes);
-
-        const barangRes = await apiFetch(
-          "/barangunit/available-for-peminjaman",
-          {},
-          token
-        );
         setBarangList(barangRes.data ?? barangRes);
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Gagal memuat data awal");
+        toast.error("Gagal memuat data", { description: err.message });
       } finally {
         setLoading(false);
       }
     };
-
     load();
   }, [router, token, user, clearAuthStore]);
 
   useEffect(() => {
-    const type = searchParams.get('type');
-    if (type === 'location') setLoanType('location');
-    if (type === 'items') setLoanType('items');
-    const kode = searchParams.get('kodeLokasi');
+    const type = searchParams.get("type");
+    if (type === "location" || type === "items") setLoanType(type);
+    
+    const kode = searchParams.get("kodeLokasi");
     if (kode) setKodeLokasi(kode);
-    const nup = searchParams.get('nup');
-    if (nup) setNupText(nup);
+
+    const nup = searchParams.get("nup");
+    if (nup) addNup(nup);
   }, [searchParams]);
 
   const addNup = (nup: string) => {
-    setNupText((prev) => {
-      const list = prev
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-      if (list.includes(nup)) return prev;
-      return list.length === 0 ? nup : `${prev.trim()}, ${nup}`;
-    });
+    if (!selectedNups.includes(nup)) {
+      setSelectedNups((prev) => [...prev, nup]);
+    }
+  };
+
+  const removeNup = (nup: string) => {
+    setSelectedNups((prev) => prev.filter((item) => item !== nup));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
 
-    setError(null);
-    setSuccess(null);
     setSubmitting(true);
 
     try {
-      const rawNups = nupText
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+      if (selectedNups.length === 0) throw new Error("Minimal 1 NUP barang harus dipilih");
 
-      if (rawNups.length === 0) {
-        setError("Minimal 1 NUP barang harus diisi");
-        setSubmitting(false);
-        return;
-      }
+      if (loanType === "items") {
+        if (!kodeLokasi) throw new Error("Untuk peminjaman barang saja, lokasi wajib dipilih");
+        if (lokasiTambahan) throw new Error("Barang saja tidak boleh isi lokasi tambahan");
 
-      // Validasi aturan peminjaman civitas_faste
-      if (loanType === 'location') {
-        // Peminjaman lokasi + barang tambahan: bisa multi hari
-        // Kode lokasi optional, barang bisa apa saja
-      } else {
-        // Peminjaman barang saja: harus pilih lokasi, hanya proyektor/sound system, per hari
-        if (!kodeLokasi) {
-          setError("Untuk peminjaman barang saja, lokasi wajib dipilih");
-          setSubmitting(false);
-          return;
-        }
-        if (lokasiTambahan) {
-          setError("Untuk peminjaman barang saja, tidak boleh mengisi lokasi tambahan");
-          setSubmitting(false);
-          return;
-        }
-        // Check if all barang are allowed
-        const selectedBarang = barangList.filter(b => rawNups.includes(b.nup));
-        const invalid = selectedBarang.filter(b => !allowedJenis.includes(b.dataBarang?.jenis_barang));
-        if (invalid.length > 0) {
-          setError("Peminjaman barang saja hanya boleh proyektor atau sound system");
-          setSubmitting(false);
-          return;
-        }
+        // Validasi jenis barang
+        const selectedObjects = barangList.filter((b) => selectedNups.includes(b.nup));
+        const invalid = selectedObjects.filter(
+          (b) => !allowedJenis.includes(b.dataBarang?.jenis_barang)
+        );
+        if (invalid.length > 0) throw new Error("Peminjaman barang saja hanya boleh: Proyektor/Sound System");
       }
 
       let adjustedWaktuMulai = waktuMulai;
       let adjustedWaktuSelesai = waktuSelesai;
 
-      if (loanType === 'items') {
-        // For barang saja, set date to today
-        const today = new Date().toISOString().split('T')[0];
+      // Auto-set tanggal hari ini untuk 'items' only (jika input cuma jam)
+      if (loanType === "items" && !waktuMulai.includes("T")) {
+        const today = new Date().toISOString().split("T")[0];
         adjustedWaktuMulai = `${today}T${waktuMulai}:00`;
         adjustedWaktuSelesai = `${today}T${waktuSelesai}:00`;
       }
@@ -160,218 +150,259 @@ function BuatPeminjamanClient() {
         Agenda: agenda,
         waktuMulai: adjustedWaktuMulai,
         waktuSelesai: adjustedWaktuSelesai,
-        barangList: rawNups,
+        barangList: selectedNups,
       };
 
       if (kodeLokasi) payload.kodeLokasi = kodeLokasi;
       if (lokasiTambahan) payload.lokasiTambahan = lokasiTambahan;
 
-      const res = await apiFetch(
-        "/peminjaman",
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-        token
-      );
+      const res = await apiFetch("/peminjaman", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }, token);
 
-      console.log("CREATE PEMINJAMAN RESPONSE", res);
-      const created = res.data?.peminjaman ?? res.peminjaman ?? res;
-      const id = created.id;
-      setSuccess("Peminjaman berhasil dibuat.");
-      if (id) {
-        router.push(`/peminjaman/${id}`);
-      }
+      const createdId = res.data?.peminjaman?.id ?? res.peminjaman?.id ?? res.id;
+      
+      toast.success("Berhasil!", { description: "Peminjaman berhasil dibuat." });
+      
+      if (createdId) router.push(`/peminjaman/${createdId}`);
+      else router.push("/peminjaman");
+
     } catch (err: any) {
-      console.error("CREATE PEMINJAMAN ERROR", err);
-      setError(err.message || "Gagal membuat peminjaman");
+      console.error(err);
+      toast.error("Gagal membuat peminjaman", { description: err.message });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-6">Memuat...</div>;
+  if (loading) return null; // LoadingOverlay di handle parent atau global layout
 
   return (
-    <motion.div
-      className="min-h-screen bg-slate-50 p-6"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-    >
-      <div className="max-w-3xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ClipboardPen className="w-5 h-5 text-slate-700" />
-            <h1 className="text-xl font-semibold">Buat Peminjaman</h1>
+    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8 dark:bg-slate-950">
+      <LoadingOverlay isLoading={submitting} message="Sedang menyimpan peminjaman..." />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mx-auto max-w-2xl"
+      >
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
+                <ClipboardPen className="h-5 w-5 text-slate-700" />
+             </div>
+             <div>
+               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Buat Peminjaman</h1>
+               <p className="text-sm text-slate-500">Isi formulir pengajuan baru</p>
+             </div>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => router.push("/peminjaman")}
-            className="inline-flex items-center gap-1"
+            className="hidden sm:flex"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Kembali
           </Button>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        {success && (
-          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
-            {success}
-          </p>
-        )}
-
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-1">
-            <Label>Jenis Peminjaman</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="loanType"
-                  value="location"
-                  checked={loanType === 'location'}
-                  onChange={() => setLoanType('location')}
-                />
-                Peminjaman Lokasi + Barang Tambahan
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="loanType"
-                  value="items"
-                  checked={loanType === 'items'}
-                  onChange={() => setLoanType('items')}
-                />
-                Peminjaman Barang Saja
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label>Lokasi {loanType === 'items' ? '(wajib)' : '(pilih salah satu)'}</Label>
-            <select
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={kodeLokasi}
-              onChange={(e) => setKodeLokasi(e.target.value)}
-            >
-              <option value="">Pilih lokasi</option>
-              {lokasiList.map((l) => (
-                <option key={l.kode_lokasi} value={l.kode_lokasi}>
-                  {l.kode_lokasi} - {l.lokasi}
-                </option>
-              ))}
-            </select>
-            <Input
-              type="text"
-              placeholder="Lokasi tambahan (opsional)"
-              className="mt-2"
-              value={lokasiTambahan}
-              onChange={(e) => setLokasiTambahan(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label>No HP</Label>
-            <Input
-              type="tel"
-              value={noHp}
-              onChange={(e) => setNoHp(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Agenda</Label>
-            <textarea
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={agenda}
-              onChange={(e) => setAgenda(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Waktu Mulai</Label>
-              <Input
-                type={loanType === 'location' ? "datetime-local" : "time"}
-                value={waktuMulai}
-                onChange={(e) => setWaktuMulai(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Waktu Selesai</Label>
-              <Input
-                type={loanType === 'location' ? "datetime-local" : "time"}
-                value={waktuSelesai}
-                onChange={(e) => setWaktuSelesai(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label>Daftar NUP Barang (pisahkan dengan koma)</Label>
-            <textarea
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="Contoh: 4.1, 27.1, 28.1"
-              value={nupText}
-              onChange={(e) => setNupText(e.target.value)}
-              required
-            />
-            <p className="text-[11px] text-slate-500">
-              Masukkan NUP yang ingin dipinjam, atau pilih dari daftar barang
-              tersedia di bawah.
-            </p>
-
-            {filteredBarangList.length > 0 && (
-              <div className="mt-2 max-h-52 overflow-y-auto border rounded p-2 space-y-1 text-xs">
-                {filteredBarangList.map((b) => (
-                  <button
-                    key={b.nup}
-                    type="button"
-                    onClick={() => addNup(b.nup)}
-                    className="w-full text-left px-2 py-1 rounded hover:bg-slate-100"
-                  >
-                    <span className="font-mono text-[11px]">{b.nup}</span> —{" "}
-                    {b.dataBarang.jenis_barang} ({b.dataBarang.merek})
-                  </button>
-                ))}
+        <Card className="shadow-lg border-slate-200 dark:border-slate-800">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+             <CardTitle className="text-base">Detail Pengajuan</CardTitle>
+             <CardDescription>Pastikan data yang diisi sudah benar.</CardDescription>
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            <form id="peminjaman-form" onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Jenis Peminjaman - Radio Group */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Jenis Peminjaman</Label>
+                <RadioGroup 
+                   value={loanType} 
+                   onValueChange={(v: "location" | "items") => setLoanType(v)}
+                   className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                >
+                  <div>
+                    <RadioGroupItem value="location" id="loc" className="peer sr-only" />
+                    <Label
+                      htmlFor="loc"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all"
+                    >
+                      <span className="font-semibold">Lokasi & Barang</span>
+                      <span className="text-xs text-muted-foreground mt-1 text-center">Pinjam ruangan dan alat tambahan</span>
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem value="items" id="item" className="peer sr-only" />
+                    <Label
+                      htmlFor="item"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer transition-all"
+                    >
+                      <span className="font-semibold">Hanya Barang</span>
+                      <span className="text-xs text-muted-foreground mt-1 text-center">Pinjam alat (Proyektor/Sound) saja</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
-            )}
-          </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+              {/* Lokasi Selection */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>
+                    Lokasi {loanType === "items" && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Select value={kodeLokasi} onValueChange={setKodeLokasi}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Pilih Lokasi..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lokasiList.map((l) => (
+                        <SelectItem key={l.kode_lokasi} value={l.kode_lokasi}>
+                          {l.lokasi} ({l.kode_lokasi})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {loanType === "location" && (
+                   <div className="space-y-2">
+                     <Label>Lokasi Tambahan (Opsional)</Label>
+                     <Input 
+                       placeholder="Contoh: Koridor Lt.2" 
+                       value={lokasiTambahan}
+                       onChange={(e) => setLokasiTambahan(e.target.value)}
+                     />
+                   </div>
+                )}
+              </div>
+
+              {/* Kontak & Agenda */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                 <div className="space-y-2">
+                   <Label>Nomor HP / WA <span className="text-red-500">*</span></Label>
+                   <Input 
+                     type="tel" 
+                     placeholder="08xxxxxxxxxx"
+                     value={noHp}
+                     onChange={(e) => setNoHp(e.target.value)}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-2 sm:col-span-2">
+                   <Label>Agenda Kegiatan <span className="text-red-500">*</span></Label>
+                   <Textarea 
+                     placeholder="Deskripsikan kegiatan..." 
+                     className="resize-none"
+                     rows={2}
+                     value={agenda}
+                     onChange={(e) => setAgenda(e.target.value)}
+                     required
+                   />
+                 </div>
+              </div>
+
+              {/* Waktu */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Waktu Mulai
+                  </Label>
+                  <Input 
+                    type={loanType === "location" ? "datetime-local" : "time"} 
+                    value={waktuMulai}
+                    onChange={(e) => setWaktuMulai(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                   <Label className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Waktu Selesai
+                   </Label>
+                   <Input 
+                     type={loanType === "location" ? "datetime-local" : "time"} 
+                     value={waktuSelesai}
+                     onChange={(e) => setWaktuSelesai(e.target.value)}
+                     required
+                   />
+                </div>
+              </div>
+
+              {/* Pilih Barang */}
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
+                 <Label className="text-base font-semibold">Pilih Barang</Label>
+                 
+                 {/* Input Select Barang */}
+                 <Select onValueChange={addNup}>
+                   <SelectTrigger className="bg-white">
+                     <SelectValue placeholder="Cari / Pilih Barang..." />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {filteredBarangList.length === 0 ? (
+                       <div className="p-2 text-sm text-slate-500">Tidak ada barang tersedia</div>
+                     ) : (
+                       filteredBarangList.map((b) => (
+                         <SelectItem key={b.nup} value={b.nup}>
+                           {b.nup} — {b.dataBarang.jenis_barang} ({b.dataBarang.merek})
+                         </SelectItem>
+                       ))
+                     )}
+                   </SelectContent>
+                 </Select>
+                 
+                 {/* List Barang Terpilih (Chips) */}
+                 <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedNups.length === 0 && (
+                      <span className="text-xs text-slate-400 italic">Belum ada barang dipilih.</span>
+                    )}
+                    {selectedNups.map((nup) => (
+                      <Badge key={nup} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1 text-xs">
+                        {nup}
+                        <button 
+                          type="button"
+                          onClick={() => removeNup(nup)}
+                          className="ml-1 rounded-full p-0.5 hover:bg-slate-200 hover:text-red-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                 </div>
+              </div>
+
+            </form>
+          </CardContent>
+
+          <CardFooter className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+            <Button 
+              variant="ghost" 
               onClick={() => router.push("/peminjaman")}
+              type="button"
             >
               Batal
             </Button>
-            <Button type="submit" disabled={submitting} size="sm">
-              {submitting ? "Menyimpan..." : "Simpan"}
+            <Button 
+              type="submit" 
+              form="peminjaman-form"
+              disabled={submitting}
+              className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900"
+            >
+              {submitting ? "Menyimpan..." : "Kirim Pengajuan"}
             </Button>
-          </div>
-        </form>
-      </div>
-    </motion.div>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
   );
 }
 
 export default function BuatPeminjamanPage() {
   return (
-    <Suspense fallback={<div className="p-6">Memuat...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Memuat...</div>}>
       <BuatPeminjamanClient />
     </Suspense>
   );

@@ -1,15 +1,20 @@
-// app/akun/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Lock } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
+
+// Shadcn Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiFetch } from "@/lib/api";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 type FormState = {
   nama: string;
@@ -20,9 +25,7 @@ type FormState = {
 
 export default function AkunPage() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
-  const clearAuthStore = useAuthStore((s) => s.clearAuth);
+  const { user, token, clearAuth } = useAuthStore();
   const backHref = "/peminjaman/profil";
 
   const [form, setForm] = useState<FormState>({
@@ -31,40 +34,38 @@ export default function AkunPage() {
     password: "",
     password_confirm: "",
   });
+  
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !token) {
-      clearAuthStore();
+      clearAuth();
       router.replace("/login");
       return;
     }
     setForm((f) => ({ ...f, nama: user.nama, email: user.email }));
-  }, [user, token, router, clearAuthStore]);
+  }, [user, token, router, clearAuth]);
 
-  const handleChange =
-    (field: keyof FormState) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
+  const handleChange = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setMessage(null);
-
-    if (form.password && form.password !== form.password_confirm) {
-      setError("Konfirmasi password tidak sama.");
-      return;
+    
+    // Validasi Password jika diisi
+    if (form.password || form.password_confirm) {
+        if (form.password !== form.password_confirm) {
+            toast.error("Validasi Gagal", { description: "Konfirmasi password tidak cocok." });
+            return;
+        }
+        if (form.password.length < 8) {
+            toast.error("Validasi Gagal", { description: "Password minimal 8 karakter." });
+            return;
+        }
     }
 
-    if (!token) {
-      clearAuthStore();
-      router.replace("/login");
-      return;
-    }
+    if (!token) return;
 
     setLoading(true);
     try {
@@ -81,86 +82,146 @@ export default function AkunPage() {
         },
         token
       );
-      setMessage("Akun berhasil diperbarui.");
+      
+      toast.success("Berhasil", { description: "Data akun berhasil diperbarui." });
+      
+      // Reset field password
       setForm((f) => ({ ...f, password: "", password_confirm: "" }));
+      
     } catch (err: any) {
-      setError(err.message || "Gagal memperbarui akun.");
+      toast.error("Gagal", { description: err.message || "Gagal memperbarui akun." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      className="min-h-screen bg-slate-50 p-6"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-    >
-      <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Pengelolaan Akun</h1>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50/50 p-4 dark:bg-slate-950">
+      <LoadingOverlay isLoading={loading} message="Menyimpan perubahan..." />
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-            {error}
-          </p>
-        )}
-        {message && (
-          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
-            {message}
-          </p>
-        )}
+      <motion.div
+        className="w-full max-w-2xl space-y-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
+        <div className="flex items-center justify-between">
+           <div>
+             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Pengaturan Akun</h1>
+             <p className="text-sm text-slate-500">Kelola informasi profil dan keamanan akun Anda.</p>
+           </div>
+           <Button variant="outline" size="sm" onClick={() => router.push(backHref)}>
+             <ArrowLeft className="mr-2 h-4 w-4" />
+             Kembali
+           </Button>
+        </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-1">
-            <Label>Nama</Label>
-            <Input value={form.nama} onChange={handleChange("nama")} />
-          </div>
+        <Tabs defaultValue="profil" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="profil">Profil Umum</TabsTrigger>
+            <TabsTrigger value="keamanan">Keamanan (Password)</TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-1">
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={handleChange("email")}
-            />
-          </div>
+          <form onSubmit={handleSubmit}>
+            {/* Tab Profil */}
+            <TabsContent value="profil">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informasi Dasar</CardTitle>
+                  <CardDescription>
+                    Perbarui nama lengkap dan email institusi Anda di sini.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nama">Nama Lengkap</Label>
+                    <div className="relative">
+                       <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                       <Input 
+                         id="nama" 
+                         value={form.nama} 
+                         onChange={handleChange("nama")} 
+                         className="pl-9"
+                         placeholder="Nama Anda"
+                       />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                       <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                       <Input 
+                         id="email" 
+                         type="email" 
+                         value={form.email} 
+                         onChange={handleChange("email")} 
+                         className="pl-9"
+                         placeholder="email@uin-suska.ac.id"
+                       />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="justify-end border-t bg-slate-50/50 px-6 py-4 dark:bg-slate-900/50">
+                   <Button type="submit" disabled={loading}>
+                     <Save className="mr-2 h-4 w-4" />
+                     Simpan Perubahan
+                   </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
 
-          <div className="space-y-1">
-            <Label>Password baru (opsional)</Label>
-            <Input
-              type="password"
-              value={form.password}
-              onChange={handleChange("password")}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Konfirmasi password baru</Label>
-            <Input
-              type="password"
-              value={form.password_confirm}
-              onChange={handleChange("password_confirm")}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(backHref)}
-              className="inline-flex items-center gap-1"
-              type="button"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Batal
-            </Button>
-            <Button type="submit" size="sm" disabled={loading}>
-              {loading ? "Menyimpan..." : "Simpan Perubahan"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </motion.div>
+            {/* Tab Keamanan */}
+            <TabsContent value="keamanan">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ganti Password</CardTitle>
+                  <CardDescription>
+                    Kosongkan jika tidak ingin mengubah password. Gunakan minimal 8 karakter.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pass">Password Baru</Label>
+                    <div className="relative">
+                       <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                       <Input 
+                         id="pass"
+                         type="password" 
+                         value={form.password} 
+                         onChange={handleChange("password")} 
+                         className="pl-9"
+                         placeholder="••••••••"
+                         autoComplete="new-password"
+                       />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pass_conf">Konfirmasi Password</Label>
+                    <div className="relative">
+                       <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                       <Input 
+                         id="pass_conf"
+                         type="password" 
+                         value={form.password_confirm} 
+                         onChange={handleChange("password_confirm")} 
+                         className="pl-9"
+                         placeholder="••••••••"
+                         autoComplete="new-password"
+                       />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="justify-end border-t bg-slate-50/50 px-6 py-4 dark:bg-slate-900/50">
+                   <Button type="submit" disabled={loading} variant="destructive">
+                     <Save className="mr-2 h-4 w-4" />
+                     Update Password
+                   </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </form>
+        </Tabs>
+      </motion.div>
+    </div>
   );
 }

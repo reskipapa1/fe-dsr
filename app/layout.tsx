@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,21 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard DSR",
-  description: "Sistem Peminjaman Barang & Ruangan",
+  title: "Dashboard DSR - Sistem Peminjaman",
+  description: "Sistem Peminjaman Barang & Ruangan Fakultas Sains dan Teknologi",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="id">
+    <html lang="id" className="h-full scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
+        className={`${geistSans.variable} ${geistMono.variable} h-full bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-50`}
       >
+        {/* Render halaman children (Login, Admin, Peminjaman, dll) */}
         {children}
+
+        {/* Notifikasi Global (Sonner) */}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

@@ -54,7 +54,12 @@ export default function AdminPeminjamanPage() {
       const res = await apiFetch(path, {}, token);
       let fetchedData = res.data ?? res;
 
-      // All roles can see all loans
+      // Filter for staff_prodi: only show loans with tif items
+      if (user.role === "staff_prodi") {
+        fetchedData = fetchedData.filter((p: any) =>
+          p.items?.some((item: any) => item.barangUnit?.jurusan === "tif")
+        );
+      }
 
       setData(fetchedData);
     } catch (err: any) {
@@ -75,17 +80,31 @@ export default function AdminPeminjamanPage() {
     await loadData();
   };
 
-  const isStaffProdiItem = (jenis: string) => ["Proyektor", "Microphone", "Sound System"].includes(jenis);
+  const isStaffProdiItem = (jenis: string) =>
+    ["Proyektor", "Microphone", "Sound System"].includes(jenis);
 
-  const handleVerify = async (id: number, verifikasi: "diterima" | "ditolak") => {
+  const handleVerify = async (
+    id: number,
+    verifikasi: "diterima" | "ditolak"
+  ) => {
     if (!token || !user) return;
-    if (!["staff_prodi", "kepala_bagian_akademik"].includes(user.role)) return;
+    if (!["staff", "staff_prodi", "kepala_bagian_akademik"].includes(user.role))
+      return;
 
-    const p = data.find(d => d.id === id);
+    const p = data.find((d) => d.id === id);
     if (!p) return;
-    const isStaffProdiLoan = p.items?.some((item: any) => isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang));
+    const isStaffProdiLoan = p.items?.some((item: any) =>
+      isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang)
+    );
     if (user.role === "staff_prodi" && !isStaffProdiLoan) return;
     if (user.role === "kepala_bagian_akademik" && isStaffProdiLoan) return;
+    if (user.role === "staff") {
+      const semuaBarangUmum = p.items?.every(
+        (item: any) => item.barangUnit?.jurusan === "umum"
+      );
+      const lokasiUmum = !p.kodeLokasi || p.lokasi?.jurusan === "umum";
+      if (!semuaBarangUmum || !lokasiUmum) return;
+    }
 
     try {
       await apiFetch(
@@ -104,12 +123,20 @@ export default function AdminPeminjamanPage() {
 
   const handleActivate = async (id: number) => {
     if (!token || !user) return;
-    if (!["staff", "staff_prodi", "kepala_bagian_akademik"].includes(user.role)) return;
+    if (!["staff", "staff_prodi", "kepala_bagian_akademik"].includes(user.role))
+      return;
 
-    const p = data.find(d => d.id === id);
+    const p = data.find((d) => d.id === id);
     if (!p) return;
-    const isStaffProdiLoan = p.items?.some((item: any) => isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang));
-    if (user.role === "staff" && isStaffProdiLoan) return;
+    const isStaffProdiLoan = p.items?.some((item: any) =>
+      isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang)
+    );
+    const semuaBarangUmum = p.items?.every(
+      (item: any) => item.barangUnit?.jurusan === "umum"
+    );
+    const lokasiUmum = !p.kodeLokasi || p.lokasi?.jurusan === "umum";
+    const isUmumLoan = semuaBarangUmum && lokasiUmum;
+    if (user.role === "staff" && !isUmumLoan) return;
     if (user.role === "staff_prodi" && !isStaffProdiLoan) return;
     if (user.role === "kepala_bagian_akademik" && isStaffProdiLoan) return;
 
@@ -129,12 +156,20 @@ export default function AdminPeminjamanPage() {
 
   const handleReturn = async (id: number) => {
     if (!token || !user) return;
-    if (!["staff", "staff_prodi", "kepala_bagian_akademik"].includes(user.role)) return;
+    if (!["staff", "staff_prodi", "kepala_bagian_akademik"].includes(user.role))
+      return;
 
-    const p = data.find(d => d.id === id);
+    const p = data.find((d) => d.id === id);
     if (!p) return;
-    const isStaffProdiLoan = p.items?.some((item: any) => isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang));
-    if (user.role === "staff" && isStaffProdiLoan) return;
+    const isStaffProdiLoan = p.items?.some((item: any) =>
+      isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang)
+    );
+    const semuaBarangUmum = p.items?.every(
+      (item: any) => item.barangUnit?.jurusan === "umum"
+    );
+    const lokasiUmum = !p.kodeLokasi || p.lokasi?.jurusan === "umum";
+    const isUmumLoan = semuaBarangUmum && lokasiUmum;
+    if (user.role === "staff" && !isUmumLoan) return;
     if (user.role === "staff_prodi" && !isStaffProdiLoan) return;
     if (user.role === "kepala_bagian_akademik" && isStaffProdiLoan) return;
 
@@ -153,6 +188,8 @@ export default function AdminPeminjamanPage() {
   };
 
   if (loading) return <div className="p-6">Memuat...</div>;
+
+  const showAksi = user?.role !== "kepala_bagian_akademik";
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -227,7 +264,7 @@ export default function AdminPeminjamanPage() {
                   <th className="px-3 py-2">Lokasi</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Verifikasi</th>
-                  <th className="px-3 py-2">Aksi</th>
+                  {showAksi && <th className="px-3 py-2">Aksi</th>}
                 </tr>
               </thead>
               <tbody>
@@ -236,86 +273,118 @@ export default function AdminPeminjamanPage() {
                     <td className="px-3 py-2">{p.id}</td>
                     <td className="px-3 py-2">{p.user?.nama ?? "-"}</td>
                     <td className="px-3 py-2">{p.Agenda}</td>
-                    <td className="px-3 py-2">{p.items?.map((item: any) => `${item.barangUnit?.dataBarang?.jenis_barang} (${item.barangUnit?.dataBarang?.merek})`).join(", ") || "-"}</td>
-                    <td className="px-3 py-2">{p.lokasi?.lokasi || p.lokasiTambahan || "-"}</td>
+                    <td className="px-3 py-2">
+                      {p.items
+                        ?.map(
+                          (item: any) =>
+                            `${item.barangUnit?.dataBarang?.jenis_barang} (${item.barangUnit?.dataBarang?.merek})`
+                        )
+                        .join(", ") || "-"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {p.lokasi?.lokasi || p.lokasiTambahan || "-"}
+                    </td>
                     <td className="px-3 py-2">{p.status}</td>
                     <td className="px-3 py-2">{p.verifikasi}</td>
-                    <td className="px-3 py-2 space-x-1">
-                      {(() => {
-                        if (!user) return null;
-                        const isStaffProdiLoan = p.items?.some((item: any) => isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang));
-                        const canVerify = (user.role === "staff_prodi" && isStaffProdiLoan) ||
-                          (user.role === "kepala_bagian_akademik" && !isStaffProdiLoan);
-                        const canActivate = (user.role === "staff_prodi" && isStaffProdiLoan) ||
-                          (user.role === "staff" && !isStaffProdiLoan) ||
-                          (user.role === "kepala_bagian_akademik" && !isStaffProdiLoan);
-                        const canReturn = canActivate;
-                        return (
-                          <>
-                            {p.status === "booking" && canVerify && (
-                              <>
+                    {showAksi && (
+                      <td className="px-3 py-2 space-x-1">
+                        {(() => {
+                          if (!user) return null;
+                          const isStaffProdiLoan = p.items?.some((item: any) =>
+                            isStaffProdiItem(
+                              item.barangUnit?.dataBarang?.jenis_barang
+                            )
+                          );
+                          const semuaBarangUmum = p.items?.every(
+                            (item: any) => item.barangUnit?.jurusan === "umum"
+                          );
+                          const lokasiUmum =
+                            !p.kodeLokasi || p.lokasi?.jurusan === "umum";
+                          const isUmumLoan = semuaBarangUmum && lokasiUmum;
+                          const canVerify =
+                            (user.role === "staff_prodi" && isStaffProdiLoan) ||
+                            (user.role === "kepala_bagian_akademik" &&
+                              !isStaffProdiLoan) ||
+                            (user.role === "staff" && isUmumLoan);
+                          const canActivate =
+                            (user.role === "staff_prodi" && isStaffProdiLoan) ||
+                            (user.role === "staff" && isUmumLoan) ||
+                            (user.role === "kepala_bagian_akademik" &&
+                              !isStaffProdiLoan);
+                          const canReturn = canActivate;
+                          return (
+                            <>
+                              {p.status === "booking" && canVerify && (
+                                <>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="px-2 py-1 bg-emerald-600 text-white"
+                                    onClick={() =>
+                                      handleVerify(p.id, "diterima")
+                                    }
+                                  >
+                                    Terima
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="px-2 py-1 bg-red-600 text-white"
+                                    onClick={() =>
+                                      handleVerify(p.id, "ditolak")
+                                    }
+                                  >
+                                    Tolak
+                                  </Button>
+                                </>
+                              )}
+
+                              {p.status === "booking" &&
+                                p.verifikasi === "diterima" &&
+                                canActivate && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="px-2 py-1 bg-blue-600 text-white"
+                                    onClick={() => handleActivate(p.id)}
+                                  >
+                                    Aktifkan
+                                  </Button>
+                                )}
+
+                              {p.status === "aktif" && canReturn && (
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="px-2 py-1 bg-emerald-600 text-white"
-                                  onClick={() => handleVerify(p.id, "diterima")}
+                                  className="px-2 py-1 bg-indigo-600 text-white"
+                                  onClick={() => handleReturn(p.id)}
                                 >
-                                  Terima
+                                  Kembalikan
                                 </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="px-2 py-1 bg-red-600 text-white"
-                                  onClick={() => handleVerify(p.id, "ditolak")}
-                                >
-                                  Tolak
-                                </Button>
-                              </>
-                            )}
+                              )}
 
-                            {p.status === "booking" && p.verifikasi === "diterima" && canActivate && (
                               <Button
                                 type="button"
                                 size="sm"
-                                className="px-2 py-1 bg-blue-600 text-white"
-                                onClick={() => handleActivate(p.id)}
+                                className="px-2 py-1 bg-slate-700 text-white text-xs"
+                                onClick={() =>
+                                  router.push(`/admin/scan?kode=PINJAM-${p.id}`)
+                                }
                               >
-                                Aktifkan
+                                Scan
                               </Button>
-                            )}
-
-                            {p.status === "aktif" && canReturn && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="px-2 py-1 bg-indigo-600 text-white"
-                                onClick={() => handleReturn(p.id)}
-                              >
-                                Kembalikan
-                              </Button>
-                            )}
-
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="px-2 py-1 bg-slate-700 text-white text-xs"
-                              onClick={() =>
-                                router.push(`/admin/scan?kode=PINJAM-${p.id}`)
-                              }
-                            >
-                              Scan
-                            </Button>
-                          </>
-                        );
-                      })()}
-                    </td>
+                            </>
+                          );
+                        })()}
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {data.length === 0 && (
                   <tr>
                     <td
                       className="px-3 py-4 text-center text-slate-500"
-                      colSpan={8}
+                      colSpan={showAksi ? 8 : 7}
                     >
                       Tidak ada data.
                     </td>

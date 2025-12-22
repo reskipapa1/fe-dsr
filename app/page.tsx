@@ -11,61 +11,68 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 selection:bg-emerald-100 dark:bg-slate-950">
       <Header />
 
-      {/* Konten utama */}
-      <main className="flex-1">
+      <main className="flex flex-1 flex-col justify-center">
         <motion.section
-          className="max-w-5xl mx-auto px-4 py-10 sm:py-16 text-center"
-          initial={{ opacity: 0, y: 16 }}
+          className="container mx-auto max-w-4xl px-4 py-20 text-center sm:py-32"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <div className="inline-flex items-center gap-2 mb-4 rounded-full bg-emerald-50 px-4 py-1 text-[11px] text-emerald-700 border border-emerald-200">
-            <Boxes className="w-3 h-3" />
-            <span>Sistem Digital Pengelolaan BMN FASTe</span>
-          </div>
+          {/* Badge */}
+          <motion.div 
+            className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-700 shadow-sm"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Boxes className="h-3.5 w-3.5" />
+            <span>Sistem Digital Pengelolaan BMN FASTE</span>
+          </motion.div>
 
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-[0.2em] uppercase mb-6">
-            Sistem Pengelolaan BMN FASTe
+          {/* Heading */}
+          <h1 className="mb-6 text-3xl font-bold uppercase tracking-widest text-slate-900 sm:text-4xl md:text-5xl lg:leading-tight dark:text-slate-50">
+            Sistem Pengelolaan <span className="text-emerald-600">BMN FASTE</span>
           </h1>
 
-          <p className="text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto text-slate-700">
-            Sistem ini dikembangkan untuk mempermudah dan menertibkan proses
-            peminjaman, penempatan, dan pemantauan Barang Milik Negara (BMN) di
-            lingkungan Fakultas Sains dan Teknologi UIN Sultan Syarif Kasim
-            Riau. Melalui platform terintegrasi ini, civitas akademika dapat
-            mengajukan peminjaman, memantau status aset, dan menyusun laporan
-            dengan cara yang transparan, akuntabel, dan terdokumentasi.
-          </p>
+          {/* Description */}
+          <div className="mx-auto max-w-2xl space-y-4 text-sm leading-relaxed text-slate-600 sm:text-base dark:text-slate-400">
+            <p>
+              Platform terintegrasi untuk mempermudah peminjaman, penempatan, dan
+              pemantauan Barang Milik Negara (BMN) di Fakultas Sains dan Teknologi
+              UIN Sultan Syarif Kasim Riau.
+            </p>
+            <p>
+              Transparan, akuntabel, dan efisien demi mendukung kegiatan akademik
+              yang berkelanjutan.
+            </p>
+          </div>
 
-          <p className="text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto text-slate-700 mt-4">
-            Sistem BMN FASTe hadir untuk mendukung kegiatan akademik yang
-            tertib, efisien, dan berkelanjutan, tanpa bergantung pada pencatatan
-            manual.
-          </p>
-
-          <div className="mt-8 flex flex-col items-center gap-4">
+          {/* Action Button */}
+          <motion.div 
+            className="mt-10 flex flex-col items-center gap-6"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             <Button
               size="lg"
               onClick={() => router.push("/login")}
-              className="flex items-center gap-2"
+              className="group h-12 px-8 text-base shadow-lg transition-all hover:shadow-emerald-200/50"
             >
               Masuk ke Sistem
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
+          </motion.div>
 
-            <div className="mt-4">
-              <h2 className="text-sm sm:text-base tracking-[0.3em] uppercase mb-2">
-                Our Teams
-              </h2>
-              <p className="text-[11px] sm:text-xs text-slate-600 max-w-md mx-auto">
-                Dikelola oleh tim pengelola BMN dan pengembang sistem Fakultas
-                Sains dan Teknologi untuk memastikan pengelolaan aset yang
-                tertib dan profesional.
-              </p>
-            </div>
+          {/* Footer Teams */}
+          <div className="mt-16 border-t border-slate-200 pt-8 dark:border-slate-800">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+              Our Team
+            </h2>
+            <p className="mx-auto max-w-md text-xs text-slate-500">
+              Dikelola oleh tim pengelola BMN dan pengembang sistem Fakultas Sains
+              dan Teknologi.
+            </p>
           </div>
         </motion.section>
       </main>

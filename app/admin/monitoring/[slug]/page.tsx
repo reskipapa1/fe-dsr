@@ -75,16 +75,18 @@ export default function MonitoringSubPage() {
 
         // Client-side filtering
         if (slug === "users-staff") {
-          fetchedData = fetchedData.filter((item: any) =>
-            item.role === "staff" || item.role === "staff_prodi"
+          fetchedData = fetchedData.filter(
+            (item: any) => item.role === "staff" || item.role === "staff_prodi"
           );
         } else if (slug === "proyektor") {
-          fetchedData = fetchedData.filter((item: any) =>
-            item.dataBarang?.jenis_barang === "Proyektor"
+          fetchedData = fetchedData.filter(
+            (item: any) =>
+              item.dataBarang?.jenis_barang === "Proyektor" &&
+              (user?.role !== "staff_prodi" || item.jurusan === "tif")
           );
         } else if (slug === "barang-non-proyektor") {
-          fetchedData = fetchedData.filter((item: any) =>
-            item.dataBarang?.jenis_barang !== "Proyektor"
+          fetchedData = fetchedData.filter(
+            (item: any) => item.dataBarang?.jenis_barang !== "Proyektor"
           );
         }
 
@@ -127,9 +129,9 @@ export default function MonitoringSubPage() {
       case "semua-barang":
       case "barang-non-proyektor":
       case "proyektor":
-        return ["NUP", "Jenis Barang", "Merek", "Lokasi", "Status", "Status Booking"];
+        return ["NUP", "Jenis Barang", "Merek", "Lokasi", "Status", "Detail"];
       case "semua-lokasi":
-        return ["Kode Lokasi", "Lokasi", "Status", "Status Booking"];
+        return ["Kode Lokasi", "Lokasi", "Status", "Detail"];
       default:
         return [];
     }
@@ -145,18 +147,19 @@ export default function MonitoringSubPage() {
             <td className="px-4 py-2">{item.nama}</td>
             <td className="px-4 py-2">{item.email}</td>
             <td className="px-4 py-2">{item.role}</td>
-            {user?.role === "kepala_bagian_akademik" && slug === "users-staff" && (
-              <td className="px-4 py-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => router.push(`/admin/akun/edit/${item.nik}`)}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit User
-                </Button>
-              </td>
-            )}
+            {user?.role === "kepala_bagian_akademik" &&
+              slug === "users-staff" && (
+                <td className="px-4 py-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/admin/akun/edit/${item.nik}`)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit User
+                  </Button>
+                </td>
+              )}
           </tr>
         );
       case "semua-barang":
@@ -169,7 +172,17 @@ export default function MonitoringSubPage() {
             <td className="px-4 py-2">{item.dataBarang?.merek}</td>
             <td className="px-4 py-2">{item.dataLokasi?.lokasi}</td>
             <td className="px-4 py-2">{item.status}</td>
-            <td className="px-4 py-2">{item.peminjamanItems?.[0]?.peminjaman?.verifikasi || "-"}</td>
+            <td className="px-4 py-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  router.push(`/admin/monitoring/detail-barang/${item.nup}`)
+                }
+              >
+                Detail
+              </Button>
+            </td>
           </tr>
         );
       case "semua-lokasi":
@@ -178,7 +191,19 @@ export default function MonitoringSubPage() {
             <td className="px-4 py-2">{item.kode_lokasi}</td>
             <td className="px-4 py-2">{item.lokasi}</td>
             <td className="px-4 py-2">{item.status}</td>
-            <td className="px-4 py-2">{item.peminjamanP?.[0]?.verifikasi || "-"}</td>
+            <td className="px-4 py-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    `/admin/monitoring/detail-lokasi/${item.kode_lokasi}`
+                  )
+                }
+              >
+                Detail
+              </Button>
+            </td>
           </tr>
         );
       default:
@@ -188,7 +213,7 @@ export default function MonitoringSubPage() {
 
   const showTambahButton = () => {
     if (!user) return false;
-    if (user.role === "staff" || user.role === "staff_prodi") {
+    if (user.role === "staff") {
       return true;
     }
     return false;
@@ -247,7 +272,15 @@ export default function MonitoringSubPage() {
 
         {showTambahButton() && (
           <div className="flex justify-end">
-            <Button>
+            <Button
+              onClick={() => {
+                if (slug === "semua-barang") {
+                  router.push("/admin/monitoring/tambah-barang");
+                } else if (slug === "semua-lokasi") {
+                  router.push("/admin/monitoring/tambah-lokasi");
+                }
+              }}
+            >
               <Plus className="w-4 h-4 mr-1" />
               {getTambahButtonText()}
             </Button>
@@ -259,23 +292,25 @@ export default function MonitoringSubPage() {
             <thead className="bg-slate-50">
               <tr>
                 {getColumns().map((col) => (
-                  <th key={col} className="px-4 py-3 text-left font-medium text-slate-700">
+                  <th
+                    key={col}
+                    className="px-4 py-3 text-left font-medium text-slate-700"
+                  >
                     {col}
                   </th>
                 ))}
-                {user?.role === "kepala_bagian_akademik" && slug === "users-staff" && (
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Aksi</th>
-                )}
+                {user?.role === "kepala_bagian_akademik" &&
+                  slug === "users-staff" && (
+                    <th className="px-4 py-3 text-left font-medium text-slate-700">
+                      Aksi
+                    </th>
+                  )}
               </tr>
             </thead>
-            <tbody>
-              {data.map((item, index) => renderRow(item, index))}
-            </tbody>
+            <tbody>{data.map((item, index) => renderRow(item, index))}</tbody>
           </table>
           {data.length === 0 && (
-            <div className="p-8 text-center text-slate-500">
-              Tidak ada data
-            </div>
+            <div className="p-8 text-center text-slate-500">Tidak ada data</div>
           )}
         </div>
       </motion.div>
