@@ -7,14 +7,14 @@ import {
   ArrowLeft,
   LogOut,
   Settings,
-  User,
   Mail,
   CreditCard,
   ShieldCheck,
+  GraduationCap,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { jurusanLabels } from "@/lib/utils";
 
-// Shadcn Components
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -81,6 +81,7 @@ export default function ProfilPage() {
 
   if (loading)
     return <LoadingOverlay isLoading={true} message="Memuat profil..." />;
+
   if (!user) return null;
 
   const backHref = "/peminjaman";
@@ -110,7 +111,7 @@ export default function ProfilPage() {
         </div>
 
         <Card className="overflow-hidden shadow-lg border-slate-200 dark:border-slate-800">
-          {/* Header Card dengan Background */}
+          {/* Header Card */}
           <div className="h-24 bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-900 dark:to-teal-900" />
 
           <CardHeader className="relative px-6 pb-2">
@@ -141,7 +142,7 @@ export default function ProfilPage() {
 
           <CardContent className="space-y-6 px-6 py-6">
             <div className="grid gap-4">
-              {/* Detail Info Items */}
+              {/* NIK */}
               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
                   <CreditCard className="h-5 w-5" />
@@ -156,6 +157,7 @@ export default function ProfilPage() {
                 </div>
               </div>
 
+              {/* Email */}
               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
                   <Mail className="h-5 w-5" />
@@ -170,6 +172,22 @@ export default function ProfilPage() {
                 </div>
               </div>
 
+              {/* Jurusan */}
+              <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Jurusan
+                  </p>
+                  <p className="font-medium text-slate-900 dark:text-slate-200">
+                    {jurusanLabels[user.jurusan] ?? user.jurusan}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Akun */}
               <div className="flex items-center gap-4 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-slate-500 dark:bg-slate-900">
                   <ShieldCheck className="h-5 w-5" />
@@ -196,7 +214,7 @@ export default function ProfilPage() {
             <Button
               className="flex-1 gap-2"
               variant="default"
-              onClick={() => router.push("/akun")} // Sesuaikan path jika beda
+              onClick={() => router.push("/admin/akun")}
             >
               <Settings className="h-4 w-4" />
               Kelola Akun
