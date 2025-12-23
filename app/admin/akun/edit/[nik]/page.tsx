@@ -43,11 +43,6 @@ export default function EditUserPage() {
       router.replace("/login");
       return;
     }
-
-    if (user.role !== "kepala_bagian_akademik") {
-      router.replace("/peminjaman");
-      return;
-    }
   }, [router, token, user, clearAuthStore]);
 
   useEffect(() => {
@@ -103,10 +98,14 @@ export default function EditUserPage() {
         updateData.password = form.password;
       }
 
-      await apiFetch(`/auth/${nik}`, {
-        method: "PUT",
-        body: JSON.stringify(updateData),
-      }, token);
+      await apiFetch(
+        `/auth/${nik}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(updateData),
+        },
+        token
+      );
 
       setMessage("User berhasil diperbarui.");
       setForm((f) => ({ ...f, password: "" }));
@@ -137,11 +136,7 @@ export default function EditUserPage() {
     >
       <div className="max-w-xl mx-auto bg-white rounded shadow-sm p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-1" />
             Kembali
           </Button>
@@ -189,7 +184,9 @@ export default function EditUserPage() {
               <option value="civitas_faste">Civitas FASTe</option>
               <option value="staff">Staff</option>
               <option value="staff_prodi">Staff Prodi</option>
-              <option value="kepala_bagian_akademik">Kepala Bagian Akademik</option>
+              <option value="kepala_bagian_akademik">
+                Kepala Bagian Akademik
+              </option>
             </select>
           </div>
 
