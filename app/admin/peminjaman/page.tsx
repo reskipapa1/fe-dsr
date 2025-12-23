@@ -255,10 +255,8 @@ export default function AdminPeminjamanPage() {
                               !isStaffProdiLoan) ||
                             (user.role === "staff" && isUmumLoan);
                           const canActivate =
-                            (user.role === "staff_prodi" && isStaffProdiLoan) ||
-                            (user.role === "staff" && isUmumLoan) ||
-                            (user.role === "kepala_bagian_akademik" &&
-                              !isStaffProdiLoan);
+                            user.role === "kepala_bagian_akademik" &&
+                            !isStaffProdiLoan;
                           const canReturn = canActivate;
                           return (
                             <>
