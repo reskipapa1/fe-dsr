@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -9,6 +9,8 @@ import {
   Activity,
   FileSpreadsheet,
   User2,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { apiFetch } from "@/lib/api";
@@ -25,6 +27,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.token);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const clearAuthStore = useAuthStore((s) => s.clearAuth);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -40,22 +43,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Validate token
-    apiFetch("/auth/me", {}, token)
-      .then(() => {
-        // Token valid
-      })
-      .catch(() => {
-        clearAuthStore();
-        router.replace("/login");
-      });
+    apiFetch("/auth/me", {}, token).catch(() => {
+      clearAuthStore();
+      router.replace("/login");
+    });
   }, [isHydrated, router, token, user, clearAuthStore]);
 
   if (!isHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto" />
           <p className="mt-2 text-sm text-slate-600">Memuat...</p>
         </div>
       </div>
@@ -66,94 +64,139 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     pathname === href || pathname.startsWith(href + "/");
 
   const handleNav = (href: string) => {
+    setMobileOpen(false);
     router.push(href);
   };
+
+  const SidebarContent = (
+    <>
+      <div className="px-4 py-4 border-b border-slate-700">
+        <h1 className="text-lg font-semibold">Admin DSR</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          Panel pengelolaan BMN & peminjaman
+        </p>
+        {user && (
+          <p className="text-[11px] text-slate-400 mt-2">
+            Masuk sebagai <span className="font-semibold">{user.nama}</span>{" "}
+            ({user.role})
+          </p>
+        )}
+      </div>
+
+      <nav className="flex-1 px-2 py-3 space-y-1 text-sm">
+        <Button
+          type="button"
+          onClick={() => handleNav("/admin/peminjaman")}
+          variant={isActive("/admin/peminjaman") ? "default" : "ghost"}
+          size="sm"
+          className="w-full justify-start gap-2"
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Peminjaman
+        </Button>
+
+        {user && (user.role === "staff" || user.role === "staff_prodi") && (
+          <Button
+            type="button"
+            onClick={() => handleNav("/admin/scan")}
+            variant={isActive("/admin/scan") ? "default" : "ghost"}
+            size="sm"
+            className="w-full justify-start gap-2"
+          >
+            <ScanQrCode className="w-4 h-4" />
+            Scan QR
+          </Button>
+        )}
+
+        <Button
+          type="button"
+          onClick={() => handleNav("/admin/monitoring")}
+          variant={isActive("/admin/monitoring") ? "default" : "ghost"}
+          size="sm"
+          className="w-full justify-start gap-2"
+        >
+          <Activity className="w-4 h-4" />
+          Monitoring
+        </Button>
+
+        {user && user.role === "kepala_bagian_akademik" && (
+          <Button
+            type="button"
+            onClick={() => handleNav("/admin/laporan")}
+            variant={isActive("/admin/laporan") ? "default" : "ghost"}
+            size="sm"
+            className="w-full justify-start gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Laporan
+          </Button>
+        )}
+
+        <Button
+          type="button"
+          onClick={() => handleNav("/admin/profil")}
+          variant={isActive("/admin/profil") ? "default" : "ghost"}
+          size="sm"
+          className="w-full justify-start gap-2"
+        >
+          <User2 className="w-4 h-4" />
+          Profil
+        </Button>
+      </nav>
+    </>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-slate-950">
       <Header />
+
+      {/* Top bar admin untuk mobile (di bawah Header) */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 bg-white md:hidden">
+        <div className="text-sm font-semibold text-slate-800">
+          Admin DSR FASTE
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileOpen((prev) => !prev)}
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
       <div className="flex flex-1">
+        {/* Sidebar desktop */}
         <motion.aside
-          className="w-64 bg-slate-900 text-slate-100 flex flex-col"
+          className="hidden md:flex w-64 bg-slate-900 text-slate-100 flex-col"
           initial={{ x: -40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          <div className="px-4 py-4 border-b border-slate-700">
-            <h1 className="text-lg font-semibold">Admin DSR</h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Panel pengelolaan BMN & peminjaman
-            </p>
-            {user && (
-              <p className="text-[11px] text-slate-400 mt-2">
-                Masuk sebagai <span className="font-semibold">{user.nama}</span>{" "}
-                ({user.role})
-              </p>
-            )}
-          </div>
-
-          <nav className="flex-1 px-2 py-3 space-y-1 text-sm">
-            <Button
-              type="button"
-              onClick={() => handleNav("/admin/peminjaman")}
-              variant={isActive("/admin/peminjaman") ? "default" : "ghost"}
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Peminjaman
-            </Button>
-
-            {user && (user.role === "staff" || user.role === "staff_prodi") && (
-              <Button
-                type="button"
-                onClick={() => handleNav("/admin/scan")}
-                variant={isActive("/admin/scan") ? "default" : "ghost"}
-                size="sm"
-                className="w-full justify-start gap-2"
-              >
-                <ScanQrCode className="w-4 h-4" />
-                Scan QR
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              onClick={() => handleNav("/admin/monitoring")}
-              variant={isActive("/admin/monitoring") ? "default" : "ghost"}
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <Activity className="w-4 h-4" />
-              Monitoring
-            </Button>
-
-            {user && user.role === "kepala_bagian_akademik" && (
-              <Button
-                type="button"
-                onClick={() => handleNav("/admin/laporan")}
-                variant={isActive("/admin/laporan") ? "default" : "ghost"}
-                size="sm"
-                className="w-full justify-start gap-2"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                Laporan
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              onClick={() => handleNav("/admin/profil")}
-              variant={isActive("/admin/profil") ? "default" : "ghost"}
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <User2 className="w-4 h-4" />
-              Profil
-            </Button>
-          </nav>
+          {SidebarContent}
         </motion.aside>
 
+        {/* Sidebar mobile (drawer) */}
+        {mobileOpen && (
+          <motion.aside
+            className="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-100 flex flex-col md:hidden shadow-lg"
+            initial={{ x: -40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -40, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {SidebarContent}
+          </motion.aside>
+        )}
+
+        {/* Overlay backdrop mobile */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40 md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+
+        {/* Konten */}
         <motion.main
           className="flex-1 p-4 md:p-6 overflow-x-hidden"
           initial={{ opacity: 0, y: 8 }}

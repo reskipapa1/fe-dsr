@@ -1,7 +1,6 @@
-// app/akun/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; // ← tambahkan React
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/lib/auth-store";
@@ -36,7 +35,7 @@ export default function AkunPage() {
   useEffect(() => {
     if (!user || !token) {
       clearAuthStore();
-      router.replace("/login");
+    router.replace("/login");
       return;
     }
     setForm((f) => ({ ...f, nama: user.nama, email: user.email }));
@@ -67,7 +66,7 @@ export default function AkunPage() {
     setLoading(true);
     try {
       await apiFetch(
-        "/auth/akun", // BE: PUT /api/auth/akun
+        "/auth/akun",
         {
           method: "PUT",
           body: JSON.stringify({
@@ -147,7 +146,7 @@ export default function AkunPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => router.push("/profil")}
+              onClick={() => router.push("/admin/profil")}
             >
               Batal
             </Button>

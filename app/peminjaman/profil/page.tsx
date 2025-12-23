@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -13,8 +13,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { jurusanLabels } from "@/lib/utils";
 
-// Shadcn Components
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -121,11 +121,53 @@ export default function ProfilPage() {
 
           <CardContent className="space-y-4 pt-6">
             <div className="grid gap-4">
-              <SimpleInfoRow label="Nama Lengkap" value={user.nama} />
-              <SimpleInfoRow label="Nomor Induk (NIK)" value={user.nik} />
-              <SimpleInfoRow label="Email" value={user.email} />
               <SimpleInfoRow
-                label="Role Akses"
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    Nama Lengkap
+                  </span>
+                }
+                value={user.nama}
+              />
+
+              <SimpleInfoRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <CreditCard className="h-4 w-4" />
+                    Nomor Induk (NIK)
+                  </span>
+                }
+                value={user.nik}
+              />
+
+              <SimpleInfoRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </span>
+                }
+                value={user.email}
+              />
+
+              <SimpleInfoRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <Briefcase className="h-4 w-4" />
+                    Jurusan
+                  </span>
+                }
+                value={jurusanLabels[user.jurusan] ?? user.jurusan}
+              />
+
+              <SimpleInfoRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <Briefcase className="h-4 w-4" />
+                    Role Akses
+                  </span>
+                }
                 value={roleLabel[user.role] || user.role}
                 isBadge
               />
@@ -159,8 +201,16 @@ export default function ProfilPage() {
   );
 }
 
-// Komponen baris info yang sangat simple (Text only)
-function SimpleInfoRow({ label, value, isBadge = false }: any) {
+// Komponen baris info (bisa terima label berupa teks atau JSX)
+function SimpleInfoRow({
+  label,
+  value,
+  isBadge = false,
+}: {
+  label: ReactNode;
+  value: string;
+  isBadge?: boolean;
+}) {
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-1">
       <span className="text-sm font-medium text-slate-500">{label}</span>
