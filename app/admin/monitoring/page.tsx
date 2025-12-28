@@ -154,7 +154,7 @@ export default function AdminDashboard() {
         { title: "Data Lokasi", description: "Monitoring ruangan", icon: <MapPin className="w-5 h-5 text-orange-600" />, onClick: () => nav("/admin/monitoring/semua-lokasi") },
         
         // Laporan
-        { title: "Laporan", description: "Rekap data peminjaman", icon: <FileText className="w-5 h-5 text-blue-600" />, onClick: () => nav("/admin/laporan"), variant: "outline" }
+        //{ title: "Laporan", description: "Rekap data peminjaman", icon: <FileText className="w-5 h-5 text-blue-600" />, onClick: () => nav("/admin/laporan"), variant: "outline" }
       );
     } else if (user.role === "staff") {
       cards.push(
@@ -163,7 +163,9 @@ export default function AdminDashboard() {
       );
     } else if (user.role === "staff_prodi") {
       cards.push(
-        { title: "Proyektor", description: "Monitoring proyektor", icon: <Package className="w-5 h-5 text-red-600" />, onClick: () => nav("/admin/monitoring/proyektor") }
+        { title: "Proyektor", description: "Monitoring proyektor", icon: <Package className="w-5 h-5 text-red-600" />, onClick: () => nav("/admin/monitoring/proyektor") },
+       
+        //{ title: "Scan QR", description: "Verifikasi via QR", icon: <Settings className="w-5 h-5 text-gray-600" />, onClick: () => nav("/admin/scan"), variant: "outline" }
       );
     }
 
