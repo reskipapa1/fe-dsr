@@ -189,7 +189,7 @@ export default function AdminPeminjamanPage() {
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                         <Input 
-                            placeholder="Cari nama peminjam atau agenda..." 
+                            placeholder="Cari agenda..." 
                             className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-all"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}

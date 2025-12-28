@@ -332,7 +332,7 @@ export default function DetailBarangPage() {
         </div>
 
         {/* Monitoring Form Button */}
-        {user?.role === "staff" && (
+        {user?.role === "staff" && "staff_prodi" && (
            <div className="bg-white p-6 rounded-lg shadow space-y-4">
              <div className="flex justify-between items-center">
                 <h2 className="text-lg font-medium">Monitoring Barang</h2>

@@ -404,15 +404,6 @@ export default function PeminjamanPage() {
                           {l.lokasi}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-4 pt-2">
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() => handleSelectLokasi(l)}
-                        >
-                          {selectedBarang ? "Pinjam Barang di Sini" : "Pinjam Ruangan Ini"}
-                        </Button>
-                      </CardContent>
                     </Card>
                   ))}
                 </div>

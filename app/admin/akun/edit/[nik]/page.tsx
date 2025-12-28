@@ -195,12 +195,8 @@ export default function EditUserPage() {
               disabled={!canEdit}
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
             >
-              <option value="civitas_faste">Civitas FASTe</option>
               <option value="staff">Staff</option>
               <option value="staff_prodi">Staff Prodi</option>
-              <option value="kepala_bagian_akademik">
-                Kepala Bagian Akademik
-              </option>
             </select>
           </div>
 
