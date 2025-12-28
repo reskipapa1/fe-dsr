@@ -86,11 +86,13 @@ export default function AdminPeminjamanPage() {
       let fetchedData = res.data ?? res;
       fetchedData = Array.isArray(fetchedData) ? fetchedData : [];
 
+      // Filter khusus Staff Prodi (Frontend filter tambahan)
       if (user?.role === "staff_prodi") {
         fetchedData = fetchedData.filter((p: any) =>
           p.items?.some((item: any) => item.barangUnit?.jurusan === "tif")
         );
       }
+      // Staff Umum biarkan melihat semua data yang dikirim backend
 
       setRawData(fetchedData);
       setFilteredData(fetchedData);
@@ -101,14 +103,12 @@ export default function AdminPeminjamanPage() {
     }
   };
 
-  // --- ACTIONS (FIXED URLS) ---
-  
+  // --- ACTIONS (URL SUDAH BENAR) ---
+
   const handleVerify = async (id: number, verifikasi: "diterima" | "ditolak") => {
     try {
       toast.loading("Memproses verifikasi...");
       
-      // PERBAIKAN PENTING: URL harus /peminjaman/verify/{id} 
-      // BUKAN /peminjaman/{id}/verifikasi
       await apiFetch(`/peminjaman/verify/${id}`, {
         method: "PUT",
         body: JSON.stringify({ verifikasi: verifikasi }), 
@@ -127,7 +127,6 @@ export default function AdminPeminjamanPage() {
     try {
       toast.loading("Mengaktifkan peminjaman...");
       
-      // PERBAIKAN PENTING: URL harus /peminjaman/activate/{id}
       await apiFetch(`/peminjaman/activate/${id}`, { 
         method: "PUT" 
       }, token || undefined);
@@ -145,7 +144,6 @@ export default function AdminPeminjamanPage() {
     try {
       toast.loading("Menyelesaikan peminjaman...");
       
-      // PERBAIKAN PENTING: URL harus /peminjaman/return/{id}
       await apiFetch(`/peminjaman/return/${id}`, { 
         method: "PUT" 
       }, token || undefined);
@@ -159,7 +157,9 @@ export default function AdminPeminjamanPage() {
     }
   };
 
+  // Helper cek barang prodi (bisa disesuaikan listnya)
   const isStaffProdiItem = (jenis: string) => ["Proyektor", "Microphone", "Sound System"].includes(jenis);
+  
   const showAksi = user?.role !== "kepala_bagian_akademik"; 
 
   return (
@@ -265,15 +265,22 @@ export default function AdminPeminjamanPage() {
                 ) : (
                   filteredData.map((p) => {
                     const isStaffProdiLoan = p.items?.some((item: any) => isStaffProdiItem(item.barangUnit?.dataBarang?.jenis_barang));
-                    const semuaBarangUmum = p.items?.every((item: any) => item.barangUnit?.jurusan === "umum");
-                    const lokasiUmum = !p.kodeLokasi || p.lokasi?.jurusan === "umum";
-                    const isUmumLoan = semuaBarangUmum && lokasiUmum;
-
-                    const canVerify = 
-                      (user?.role === "staff_prodi" && isStaffProdiLoan) ||
-                      (user?.role === "kepala_bagian_akademik" && !isStaffProdiLoan) ||
-                      (user?.role === "staff" && isUmumLoan);
                     
+                    // Logic Akses Tombol:
+                    let canVerify = false;
+
+                    if (user?.role === "staff_prodi") {
+                        // Hanya bisa verify jika ada item prodi
+                        canVerify = isStaffProdiLoan;
+                    } else if (user?.role === "staff") {
+                        // FIX: Staff umum boleh verify semua (atau yang umum).
+                        // Kita set True agar tombolnya muncul dulu.
+                        canVerify = true; 
+                    } else if (user?.role === "kepala_bagian_akademik") {
+                        // Kabag akademik verify yang bukan prodi loan
+                        canVerify = !isStaffProdiLoan;
+                    }
+
                     const canActivate = user?.role === "kepala_bagian_akademik" && !isStaffProdiLoan;
                     
                     return (
@@ -315,6 +322,7 @@ export default function AdminPeminjamanPage() {
                         {showAksi && (
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2 flex-wrap opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              
                               {p.status === 'booking' && (p.verifikasi === 'pending' || !p.verifikasi) && canVerify && (
                                 <>
                                   <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => handleVerify(p.id, "diterima")}>
