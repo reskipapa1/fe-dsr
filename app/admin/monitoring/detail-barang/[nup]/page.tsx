@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit, Save, X, Search, Filter } from "lucide-react";
+import { ArrowLeft, Edit, Save, X, Search } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { apiFetch } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/config";
@@ -63,10 +63,8 @@ export default function DetailBarangPage() {
     createdAt: "",
   });
 
-  // State Search & Filter
+  // State Search (Hanya untuk Monitoring)
   const [monitoringSearch, setMonitoringSearch] = useState("");
-  const [peminjamanSearch, setPeminjamanSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   // Options for Dropdown
   const [options, setOptions] = useState({
@@ -127,28 +125,16 @@ export default function DetailBarangPage() {
     }
   }, [data]);
 
-  // --- Logic Filtering Data ---
+  // --- Logic Filtering Data (Hanya Monitoring) ---
   const getFilteredMonitoring = () => {
     if (!data?.monitoring) return [];
     return data.monitoring.filter((mon) => {
-      const matchSearch =
-        mon.plt.toLowerCase().includes(monitoringSearch.toLowerCase()) ||
-        mon.kondisiBarang.toLowerCase().includes(monitoringSearch.toLowerCase()) ||
-        (mon.keterangan || "").toLowerCase().includes(monitoringSearch.toLowerCase());
-      return matchSearch;
-    });
-  };
-
-  const getFilteredPeminjaman = () => {
-    if (!data?.peminjamanItems) return [];
-    return data.peminjamanItems.filter((item) => {
-      const pem = item.peminjaman;
-      if (!pem) return false;
-      
-      const matchSearch = pem.id.toString().includes(peminjamanSearch);
-      const matchStatus = statusFilter === "all" || pem.status === statusFilter;
-
-      return matchSearch && matchStatus;
+      const query = monitoringSearch.toLowerCase();
+      return (
+        mon.plt.toLowerCase().includes(query) ||
+        mon.kondisiBarang.toLowerCase().includes(query) ||
+        (mon.keterangan || "").toLowerCase().includes(query)
+      );
     });
   };
 
@@ -259,7 +245,6 @@ export default function DetailBarangPage() {
   if (!data) return <div className="min-h-screen flex items-center justify-center">Data tidak ditemukan</div>;
 
   const filteredMonitoring = getFilteredMonitoring();
-  const filteredPeminjaman = getFilteredPeminjaman();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -325,35 +310,11 @@ export default function DetailBarangPage() {
           </div>
         </div>
 
-        {/* Riwayat Peminjaman Section */}
+        {/* Riwayat Peminjaman Section (TANPA SEARCH) */}
         <div className="bg-white p-6 rounded-lg shadow space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-lg font-medium">Riwayat Peminjaman</h2>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-               <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="Cari ID Peminjaman..." 
-                    className="pl-9 h-9 w-full sm:w-[200px]" 
-                    value={peminjamanSearch}
-                    onChange={(e) => setPeminjamanSearch(e.target.value)}
-                  />
-               </div>
-               <select 
-                  className="h-9 border rounded-md px-2 text-sm"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-               >
-                  <option value="all">Semua Status</option>
-                  <option value="aktif">Aktif</option>
-                  <option value="selesai">Selesai</option>
-                  <option value="booking">Booking</option>
-               </select>
-            </div>
-          </div>
-          
+          <h2 className="text-lg font-medium">Riwayat Peminjaman</h2>
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {filteredPeminjaman.length > 0 ? filteredPeminjaman.map((item: any, index: number) => (
+            {data.peminjamanItems && data.peminjamanItems.length > 0 ? data.peminjamanItems.map((item: any, index: number) => (
               <div key={index} className="border-b pb-2 last:border-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div><strong>ID:</strong> #{item.peminjaman?.id}</div>
@@ -381,7 +342,6 @@ export default function DetailBarangPage() {
              </div>
              {showMonitoringForm && (
                <form onSubmit={handleMonitoringSubmit} className="space-y-4 border p-4 rounded-md bg-slate-50">
-                  {/* Form fields sama seperti sebelumnya */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Waktu</Label>
@@ -415,14 +375,14 @@ export default function DetailBarangPage() {
            </div>
         )}
 
-        {/* Riwayat Monitoring Section */}
+        {/* Riwayat Monitoring Section (DENGAN SEARCH) */}
         <div className="bg-white p-6 rounded-lg shadow space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-lg font-medium">Riwayat Monitoring</h2>
                 <div className="relative w-full sm:w-[250px]">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                     <Input 
-                        placeholder="Cari PLT / Kondisi / Keterangan..." 
+                        placeholder="Cari PLT / Kondisi..." 
                         className="pl-9 h-9"
                         value={monitoringSearch}
                         onChange={(e) => setMonitoringSearch(e.target.value)}

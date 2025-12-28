@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit, Save, X, Search, Filter } from "lucide-react";
+import { ArrowLeft, Edit, Save, X, Search } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,8 @@ export default function DetailLokasiPage() {
     jurusan: "",
   });
 
-  // Search State
+  // Search State (Hanya untuk Barang Unit)
   const [barangSearch, setBarangSearch] = useState("");
-  const [peminjamanSearch, setPeminjamanSearch] = useState("");
 
   useEffect(() => {
     if (!token || !user) {
@@ -80,7 +79,7 @@ export default function DetailLokasiPage() {
     }
   }, [data]);
 
-  // Logic Filtering
+  // Logic Filtering (Hanya untuk Barang)
   const getFilteredBarang = () => {
     if (!data?.barangUnit) return [];
     return data.barangUnit.filter((item) => {
@@ -91,14 +90,6 @@ export default function DetailLokasiPage() {
             item.dataBarang?.merek.toLowerCase().includes(query)
         );
     });
-  };
-
-  const getFilteredPeminjaman = () => {
-    if (!data?.peminjamanP) return [];
-    return data.peminjamanP.filter((pem) => 
-        pem.user?.nama?.toLowerCase().includes(peminjamanSearch.toLowerCase()) ||
-        pem.id.toString().includes(peminjamanSearch)
-    );
   };
 
   const handleEdit = () => setEditMode(true);
@@ -134,7 +125,6 @@ export default function DetailLokasiPage() {
   if (!data) return <div className="min-h-screen flex items-center justify-center">Data tidak ditemukan</div>;
 
   const filteredBarang = getFilteredBarang();
-  const filteredPeminjaman = getFilteredPeminjaman();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -222,23 +212,11 @@ export default function DetailLokasiPage() {
             </div>
         </div>
 
-        {/* Tabel Riwayat Peminjaman Ruangan dengan Search */}
+        {/* Tabel Riwayat Peminjaman Ruangan (TANPA SEARCH) */}
         <div className="bg-white p-6 rounded-lg shadow space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-lg font-medium">Riwayat Peminjaman Ruangan</h2>
-                <div className="relative w-full sm:w-[300px]">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                        placeholder="Cari Nama Peminjam / ID..." 
-                        className="pl-9 h-9"
-                        value={peminjamanSearch}
-                        onChange={(e) => setPeminjamanSearch(e.target.value)}
-                    />
-                </div>
-            </div>
-
+            <h2 className="text-lg font-medium">Riwayat Peminjaman Ruangan</h2>
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredPeminjaman.length > 0 ? filteredPeminjaman.map((pem: any, index: number) => (
+                {data.peminjamanP && data.peminjamanP.length > 0 ? data.peminjamanP.map((pem: any, index: number) => (
                     <div key={index} className="border-b pb-2 last:border-0">
                         <div className="flex justify-between">
                             <span className="font-semibold text-sm">#{pem.id} - {pem.user?.nama}</span>
