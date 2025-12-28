@@ -297,28 +297,7 @@ export default function PeminjamanPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Info Bar Barang Terpilih */}
-            {selectedBarang && activeTab === "barang" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 flex items-center justify-between"
-              >
-                <div className="text-sm text-blue-700">
-                  <span className="font-semibold">Barang Terpilih:</span>{" "}
-                  {selectedBarang.nup} -{" "}
-                  {selectedBarang.dataBarang?.jenis_barang}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-100 h-8"
-                  onClick={() => setSelectedBarang(null)}
-                >
-                  Batal
-                </Button>
-              </motion.div>
-            )}
+            
 
             {/* Tab Content Barang */}
             <TabsContent value="barang" className="mt-4 min-h-[200px]">
@@ -358,16 +337,6 @@ export default function PeminjamanPage() {
                           {b.dataBarang?.merek}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-4 pt-2">
-                        <Button
-                          className="w-full"
-                          size="sm"
-                          variant={selectedBarang?.nup === b.nup ? "secondary" : "default"}
-                          onClick={() => setSelectedBarang(b)}
-                        >
-                          {selectedBarang?.nup === b.nup ? "Terpilih" : "Pilih Barang"}
-                        </Button>
-                      </CardContent>
                     </Card>
                   ))}
                 </div>
