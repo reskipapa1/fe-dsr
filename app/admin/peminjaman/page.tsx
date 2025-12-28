@@ -90,8 +90,8 @@ export default function AdminPeminjamanPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Ambil SEMUA data dulu, baru filter di frontend agar search real-time cepat
-      const res = await apiFetch(`/peminjaman`, {}, token);
+      // PERBAIKAN DI SINI: token || undefined
+      const res = await apiFetch(`/peminjaman`, {}, token || undefined);
       let fetchedData = res.data ?? res;
       fetchedData = Array.isArray(fetchedData) ? fetchedData : [];
 
@@ -118,7 +118,7 @@ export default function AdminPeminjamanPage() {
       await apiFetch(`/peminjaman/verify/${id}`, {
         method: "PUT",
         body: JSON.stringify({ verifikasi }),
-      }, token!);
+      }, token || undefined); // Update token di sini juga
       toast.dismiss();
       toast.success(`Peminjaman ${verifikasi}`);
       loadData(); // Reload data terbaru
@@ -131,7 +131,7 @@ export default function AdminPeminjamanPage() {
   const handleActivate = async (id: number) => {
     try {
       toast.loading("Mengaktifkan peminjaman...");
-      await apiFetch(`/peminjaman/activate/${id}`, { method: "PUT" }, token!);
+      await apiFetch(`/peminjaman/activate/${id}`, { method: "PUT" }, token || undefined);
       toast.dismiss();
       toast.success("Peminjaman Aktif");
       loadData();
@@ -144,7 +144,7 @@ export default function AdminPeminjamanPage() {
   const handleReturn = async (id: number) => {
     try {
       toast.loading("Menyelesaikan peminjaman...");
-      await apiFetch(`/peminjaman/return/${id}`, { method: "PUT" }, token!);
+      await apiFetch(`/peminjaman/return/${id}`, { method: "PUT" }, token || undefined);
       toast.dismiss();
       toast.success("Peminjaman Selesai");
       loadData();
