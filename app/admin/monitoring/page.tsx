@@ -46,7 +46,7 @@ export default function MonitoringDashboard() {
       icon: Package,
       color: "bg-blue-100 text-blue-600",
       href: "/admin/monitoring/semua-barang", // -> Masuk ke case "semua-barang"
-      roles: ["staff", "staff_prodi", "kepala_bagian_akademik"],
+      roles: ["staff", "kepala_bagian_akademik"],
     },
     {
       title: "Data Lokasi",
