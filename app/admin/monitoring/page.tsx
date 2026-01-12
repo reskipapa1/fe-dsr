@@ -62,15 +62,7 @@ export default function MonitoringDashboard() {
       icon: Projector,
       color: "bg-purple-100 text-purple-600",
       href: "/admin/monitoring/proyektor", // -> Masuk ke case "proyektor"
-      roles: ["staff", "staff_prodi", "kepala_bagian_akademik"],
-    },
-    {
-      title: "Barang Non-Proyektor",
-      description: "Aset lain selain proyektor.",
-      icon: Package,
-      color: "bg-indigo-100 text-indigo-600",
-      href: "/admin/monitoring/barang-non-proyektor", // -> Masuk ke case "barang-non-proyektor"
-      roles: ["staff", "kepala_bagian_akademik"],
+      roles: [ "staff_prodi"],
     },
     {
       title: "User Staff",

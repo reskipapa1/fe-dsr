@@ -113,7 +113,7 @@ export default function RegisterPage() {
                 {/* Grid 2 Kolom untuk Identitas */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="nik">NIK / NIP</Label>
+                    <Label htmlFor="nik">NIP</Label>
                     <div className="relative">
                       <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                       <Input
@@ -127,7 +127,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nomorIT">No. Identitas Tunggal</Label>
+                    <Label htmlFor="nomorIT">NIK / NIP</Label>
                     <div className="relative">
                       <BadgeCheck className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                       <Input
