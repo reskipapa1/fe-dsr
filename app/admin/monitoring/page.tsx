@@ -70,7 +70,7 @@ export default function MonitoringDashboard() {
       icon: Package,
       color: "bg-indigo-100 text-indigo-600",
       href: "/admin/monitoring/barang-non-proyektor", // -> Masuk ke case "barang-non-proyektor"
-      roles: ["staff", "staff_prodi", "kepala_bagian_akademik"],
+      roles: ["staff", "kepala_bagian_akademik"],
     },
     {
       title: "User Staff",
